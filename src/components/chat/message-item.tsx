@@ -57,7 +57,7 @@ export function MessageItem({
   message: Message;
   isOwn: boolean;
   senderName: string;
-  senderAvatar?: string | null;
+  senderAvatar?: string | null | undefined;
   showSender: boolean;
   onDelete: (id: string) => void;
 }) {
