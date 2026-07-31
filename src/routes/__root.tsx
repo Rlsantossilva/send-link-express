@@ -79,14 +79,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Zap Tri — mensagens, mídia e contatos" },
+      { title: "Zap Tri — mensagens com texto, foto, vídeo e áudio" },
       {
         name: "description",
         content:
-          "Aplicativo de mensagens com textos, fotos, vídeos e áudios, contatos e convites por e-mail ou telefone.",
+          "Converse em tempo real com textos, fotos, vídeos e áudios. Crie grupos e convide pessoas por e-mail ou telefone.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:title", content: "Zap Tri — mensagens com texto, foto, vídeo e áudio" },
+      { name: "twitter:title", content: "Zap Tri — mensagens com texto, foto, vídeo e áudio" },
+      { property: "og:description", content: "Converse em tempo real com textos, fotos, vídeos e áudios. Crie grupos e convide pessoas por e-mail ou telefone." },
+      { name: "twitter:description", content: "Converse em tempo real com textos, fotos, vídeos e áudios. Crie grupos e convide pessoas por e-mail ou telefone." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/cde2d27c-f313-43fd-884b-6419a8b751c8/id-preview-01da7350--57d49fa3-88e2-45fa-b307-801fb1ece3be.lovable.app-1785503077983.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/cde2d27c-f313-43fd-884b-6419a8b751c8/id-preview-01da7350--57d49fa3-88e2-45fa-b307-801fb1ece3be.lovable.app-1785503077983.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

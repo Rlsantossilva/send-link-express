@@ -11,10 +11,10 @@ export const Route = createFileRoute("/")({
         content:
           "Converse em tempo real com textos, fotos, vídeos e áudios. Crie grupos e convide pessoas por e-mail ou telefone.",
       },
-      { property: "og:title", content: "Zap Tri — mensagens em tempo real" },
+      { property: "og:title", content: "Zap Tri — mensagens com texto, foto, vídeo e áudio" },
       {
         property: "og:description",
-        content: "Textos, fotos, vídeos e áudios em conversas individuais e grupos.",
+        content: "Converse em tempo real com textos, fotos, vídeos e áudios. Crie grupos e convide pessoas por e-mail ou telefone.",
       },
     ],
   }),
