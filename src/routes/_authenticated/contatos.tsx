@@ -1,0 +1,318 @@
+import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check, MessageSquare, Send, Trash2, UserPlus, X } from "lucide-react";
+import { toast } from "sonner";
+import { z } from "zod";
+import {
+  addContact,
+  createInvite,
+  deleteInvite,
+  findProfileByEmailOrPhone,
+  getOrCreateDirectConversation,
+  listContacts,
+  listInvites,
+  removeContact,
+  respondToInvite,
+  type Invite,
+} from "@/lib/chat";
+import { AppShell } from "@/components/app-shell";
+import { UserAvatar } from "@/components/user-avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+export const Route = createFileRoute("/_authenticated/contatos")({
+  head: () => ({
+    meta: [
+      { title: "Contatos e convites — Zap Tri" },
+      {
+        name: "description",
+        content: "Adicione contatos e envie convites por e-mail ou número de telefone no Zap Tri.",
+      },
+      { property: "og:title", content: "Contatos e convites — Zap Tri" },
+      { property: "og:description", content: "Gerencie contatos e convide pessoas para conversar." },
+    ],
+  }),
+  component: ContactsPage,
+});
+
+const identifierSchema = z
+  .string()
+  .trim()
+  .min(5, "Informe um e-mail ou telefone válido")
+  .max(255, "Valor muito longo");
+
+const emailSchema = z.string().trim().email().max(255);
+const phoneSchema = z
+  .string()
+  .trim()
+  .min(8)
+  .max(20)
+  .regex(/^[\d+\s()-]+$/);
+
+function InviteRow({
+  invite,
+  received,
+  onRespond,
+  onDelete,
+}: {
+  invite: Invite;
+  received: boolean;
+  onRespond: (accept: boolean) => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border px-3 py-2">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{invite.invitee_email || invite.invitee_phone}</p>
+        <p className="text-xs text-muted-foreground">
+          {invite.message ? invite.message : invite.status === "pending" ? "Aguardando resposta" : invite.status}
+        </p>
+      </div>
+      {received && invite.status === "pending" ? (
+        <>
+          <Button size="icon" variant="ghost" aria-label="Aceitar" onClick={() => onRespond(true)}>
+            <Check className="size-4 text-primary" />
+          </Button>
+          <Button size="icon" variant="ghost" aria-label="Recusar" onClick={() => onRespond(false)}>
+            <X className="size-4 text-destructive" />
+          </Button>
+        </>
+      ) : null}
+      {!received ? (
+        <Button size="icon" variant="ghost" aria-label="Excluir convite" onClick={onDelete}>
+          <Trash2 className="size-4" />
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+function ContactsPage() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [identifier, setIdentifier] = useState("");
+  const [inviteValue, setInviteValue] = useState("");
+  const [inviteMessage, setInviteMessage] = useState("");
+
+  const { data: contacts = [] } = useQuery({ queryKey: ["contacts"], queryFn: listContacts });
+  const { data: invites } = useQuery({ queryKey: ["invites"], queryFn: listInvites });
+
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ["contacts"] });
+    void queryClient.invalidateQueries({ queryKey: ["invites"] });
+  };
+
+  const addMutation = useMutation({
+    mutationFn: async () => {
+      const parsed = identifierSchema.safeParse(identifier);
+      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Valor inválido");
+      const profile = await findProfileByEmailOrPhone(parsed.data);
+      if (!profile) throw new Error("Ninguém encontrado. Envie um convite.");
+      await addContact(profile.id);
+      return profile.display_name;
+    },
+    onSuccess: (name) => {
+      setIdentifier("");
+      refresh();
+      toast.success(`${name} foi adicionado aos contatos`);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const inviteMutation = useMutation({
+    mutationFn: async () => {
+      const value = inviteValue.trim();
+      const isEmail = emailSchema.safeParse(value).success;
+      const isPhone = phoneSchema.safeParse(value).success;
+      if (!isEmail && !isPhone) throw new Error("Informe um e-mail ou telefone válido");
+      const message = inviteMessage.trim().slice(0, 300);
+      return createInvite({
+        ...(isEmail ? { email: value } : { phone: value }),
+        ...(message ? { message } : {}),
+      });
+    },
+    onSuccess: (result) => {
+      setInviteValue("");
+      setInviteMessage("");
+      refresh();
+      toast.success(
+        result.alreadyOnApp
+          ? "Convite enviado — essa pessoa já usa o Zap Tri!"
+          : "Convite registrado. Ela verá o convite ao entrar no app.",
+      );
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const respondMutation = useMutation({
+    mutationFn: ({ invite, accept }: { invite: Invite; accept: boolean }) => respondToInvite(invite, accept),
+    onSuccess: () => refresh(),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const deleteInviteMutation = useMutation({
+    mutationFn: deleteInvite,
+    onSuccess: () => refresh(),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: removeContact,
+    onSuccess: () => refresh(),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const openChat = useMutation({
+    mutationFn: getOrCreateDirectConversation,
+    onSuccess: (conversationId) => navigate({ to: "/conversas", search: { c: conversationId } }),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  return (
+    <AppShell>
+      <div className="mx-auto max-w-3xl space-y-6 p-4 md:p-8">
+        <header>
+          <h1 className="font-display text-2xl font-bold">Contatos</h1>
+          <p className="text-sm text-muted-foreground">
+            Adicione quem já usa o app ou convide por e-mail e telefone.
+          </p>
+        </header>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Adicionar contato</CardTitle>
+            <CardDescription>Busque por e-mail ou telefone cadastrado.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
+              placeholder="email@exemplo.com ou +55 11 99999-0000"
+              maxLength={255}
+            />
+            <Button disabled={addMutation.isPending} onClick={() => addMutation.mutate()}>
+              <UserPlus className="size-4" /> Adicionar
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Enviar convite</CardTitle>
+            <CardDescription>Funciona também para quem ainda não tem conta.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="invite-value">E-mail ou telefone</Label>
+              <Input
+                id="invite-value"
+                value={inviteValue}
+                onChange={(event) => setInviteValue(event.target.value)}
+                placeholder="amigo@exemplo.com"
+                maxLength={255}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="invite-message">Mensagem (opcional)</Label>
+              <Textarea
+                id="invite-message"
+                value={inviteMessage}
+                onChange={(event) => setInviteMessage(event.target.value)}
+                maxLength={300}
+                rows={2}
+              />
+            </div>
+            <Button
+              variant="secondary"
+              disabled={inviteMutation.isPending}
+              onClick={() => inviteMutation.mutate()}
+            >
+              <Send className="size-4" /> Enviar convite
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Tabs defaultValue="lista">
+          <TabsList>
+            <TabsTrigger value="lista">Meus contatos</TabsTrigger>
+            <TabsTrigger value="recebidos">Convites recebidos</TabsTrigger>
+            <TabsTrigger value="enviados">Convites enviados</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="lista" className="mt-3 space-y-2">
+            {contacts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum contato ainda.</p>
+            ) : (
+              contacts.map((contact) => (
+                <div key={contact.id} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2">
+                  <UserAvatar path={contact.profile?.avatar_url} name={contact.profile?.display_name} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">
+                      {contact.nickname || contact.profile?.display_name}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {contact.profile?.status_text || contact.profile?.email}
+                    </p>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label="Abrir conversa"
+                    onClick={() => openChat.mutate(contact.contact_id)}
+                  >
+                    <MessageSquare className="size-4 text-primary" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label="Remover contato"
+                    onClick={() => removeMutation.mutate(contact.id)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="recebidos" className="mt-3 space-y-2">
+            {(invites?.received ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum convite recebido.</p>
+            ) : (
+              invites?.received.map((invite) => (
+                <InviteRow
+                  key={invite.id}
+                  invite={invite}
+                  received
+                  onRespond={(accept) => respondMutation.mutate({ invite, accept })}
+                  onDelete={() => deleteInviteMutation.mutate(invite.id)}
+                />
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="enviados" className="mt-3 space-y-2">
+            {(invites?.sent ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum convite enviado.</p>
+            ) : (
+              invites?.sent.map((invite) => (
+                <InviteRow
+                  key={invite.id}
+                  invite={invite}
+                  received={false}
+                  onRespond={() => undefined}
+                  onDelete={() => deleteInviteMutation.mutate(invite.id)}
+                />
+              ))
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </AppShell>
+  );
+}

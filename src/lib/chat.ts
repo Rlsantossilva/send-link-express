@@ -1,0 +1,389 @@
+import { supabase } from "@/integrations/supabase/client";
+
+export type Profile = {
+  id: string;
+  display_name: string;
+  phone: string | null;
+  avatar_url: string | null;
+  status_text: string | null;
+  email: string | null;
+};
+
+export type MessageKind = "text" | "image" | "video" | "audio";
+
+export type Message = {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  kind: MessageKind;
+  body: string | null;
+  media_path: string | null;
+  media_name: string | null;
+  duration_seconds: number | null;
+  created_at: string;
+};
+
+export type Conversation = {
+  id: string;
+  is_group: boolean;
+  name: string | null;
+  avatar_url: string | null;
+  created_by: string;
+  last_message_at: string;
+};
+
+export type ConversationWithPeople = Conversation & {
+  members: Profile[];
+  lastMessage: Message | null;
+};
+
+export type Contact = {
+  id: string;
+  contact_id: string;
+  nickname: string | null;
+  profile: Profile | null;
+};
+
+export type Invite = {
+  id: string;
+  inviter_id: string;
+  invitee_email: string | null;
+  invitee_phone: string | null;
+  invitee_id: string | null;
+  message: string | null;
+  status: "pending" | "accepted" | "declined";
+  created_at: string;
+};
+
+export async function requireUserId(): Promise<string> {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) throw new Error("Sessão expirada");
+  return data.user.id;
+}
+
+export async function getMyProfile(): Promise<Profile | null> {
+  const userId = await requireUserId();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, display_name, phone, avatar_url, status_text, email")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateMyProfile(patch: Partial<Profile>) {
+  const userId = await requireUserId();
+  const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
+  if (error) throw error;
+}
+
+export async function listConversations(): Promise<ConversationWithPeople[]> {
+  const userId = await requireUserId();
+
+  const { data: myMemberships, error: memberErr } = await supabase
+    .from("conversation_members")
+    .select("conversation_id")
+    .eq("user_id", userId);
+  if (memberErr) throw memberErr;
+
+  const ids = (myMemberships ?? []).map((m) => m.conversation_id);
+  if (ids.length === 0) return [];
+
+  const [convRes, membersRes, messagesRes] = await Promise.all([
+    supabase
+      .from("conversations")
+      .select("id, is_group, name, avatar_url, created_by, last_message_at")
+      .in("id", ids)
+      .order("last_message_at", { ascending: false }),
+    supabase
+      .from("conversation_members")
+      .select("conversation_id, user_id, profiles:user_id(id, display_name, phone, avatar_url, status_text, email)")
+      .in("conversation_id", ids),
+    supabase
+      .from("messages")
+      .select("*")
+      .in("conversation_id", ids)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  if (convRes.error) throw convRes.error;
+  if (membersRes.error) throw membersRes.error;
+  if (messagesRes.error) throw messagesRes.error;
+
+  const membersByConv = new Map<string, Profile[]>();
+  for (const row of membersRes.data ?? []) {
+    const profile = (row as unknown as { profiles: Profile | null }).profiles;
+    if (!profile) continue;
+    const list = membersByConv.get(row.conversation_id) ?? [];
+    list.push(profile);
+    membersByConv.set(row.conversation_id, list);
+  }
+
+  const lastByConv = new Map<string, Message>();
+  for (const msg of (messagesRes.data ?? []) as Message[]) {
+    if (!lastByConv.has(msg.conversation_id)) lastByConv.set(msg.conversation_id, msg);
+  }
+
+  return ((convRes.data ?? []) as Conversation[]).map((conv) => ({
+    ...conv,
+    members: membersByConv.get(conv.id) ?? [],
+    lastMessage: lastByConv.get(conv.id) ?? null,
+  }));
+}
+
+export async function listMessages(conversationId: string): Promise<Message[]> {
+  const { data, error } = await supabase
+    .from("messages")
+    .select("*")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as Message[];
+}
+
+export async function sendTextMessage(conversationId: string, body: string) {
+  const userId = await requireUserId();
+  const { error } = await supabase.from("messages").insert({
+    conversation_id: conversationId,
+    sender_id: userId,
+    kind: "text",
+    body,
+  });
+  if (error) throw error;
+}
+
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+
+export async function sendMediaMessage(options: {
+  conversationId: string;
+  file: File | Blob;
+  kind: Exclude<MessageKind, "text">;
+  fileName: string;
+  durationSeconds?: number;
+  caption?: string;
+}) {
+  const userId = await requireUserId();
+  if (options.file.size > MAX_UPLOAD_BYTES) {
+    throw new Error("O arquivo deve ter no máximo 25 MB");
+  }
+
+  const extension = options.fileName.includes(".") ? options.fileName.split(".").pop() : "bin";
+  const path = `${options.conversationId}/${userId}-${crypto.randomUUID()}.${extension}`;
+
+  const { error: uploadError } = await supabase.storage.from("chat-media").upload(path, options.file, {
+    contentType: options.file.type || "application/octet-stream",
+    upsert: false,
+  });
+  if (uploadError) throw uploadError;
+
+  const { error } = await supabase.from("messages").insert({
+    conversation_id: options.conversationId,
+    sender_id: userId,
+    kind: options.kind,
+    body: options.caption?.trim() ? options.caption.trim() : null,
+    media_path: path,
+    media_name: options.fileName,
+    duration_seconds: options.durationSeconds ?? null,
+  });
+  if (error) throw error;
+}
+
+export async function deleteMessage(messageId: string) {
+  const { error } = await supabase.from("messages").delete().eq("id", messageId);
+  if (error) throw error;
+}
+
+export async function createSignedUrl(bucket: "chat-media" | "avatars", path: string) {
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+export async function listContacts(): Promise<Contact[]> {
+  const userId = await requireUserId();
+  const { data, error } = await supabase
+    .from("contacts")
+    .select("id, contact_id, nickname, profiles:contact_id(id, display_name, phone, avatar_url, status_text, email)")
+    .eq("owner_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    contact_id: row.contact_id,
+    nickname: row.nickname,
+    profile: (row as unknown as { profiles: Profile | null }).profiles,
+  }));
+}
+
+export async function findProfileByEmailOrPhone(value: string): Promise<Profile | null> {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const isEmail = trimmed.includes("@");
+  const query = supabase.from("profiles").select("id, display_name, phone, avatar_url, status_text, email");
+  const { data, error } = isEmail
+    ? await query.ilike("email", trimmed).limit(1)
+    : await query.eq("phone", normalizePhone(trimmed)).limit(1);
+  if (error) throw error;
+  return data?.[0] ?? null;
+}
+
+export function normalizePhone(value: string) {
+  return value.replace(/[^\d+]/g, "");
+}
+
+export async function addContact(contactUserId: string, nickname?: string) {
+  const userId = await requireUserId();
+  const { error } = await supabase
+    .from("contacts")
+    .upsert(
+      { owner_id: userId, contact_id: contactUserId, nickname: nickname?.trim() || null },
+      { onConflict: "owner_id,contact_id" },
+    );
+  if (error) throw error;
+}
+
+export async function removeContact(contactRowId: string) {
+  const { error } = await supabase.from("contacts").delete().eq("id", contactRowId);
+  if (error) throw error;
+}
+
+export async function createInvite(input: { email?: string; phone?: string; message?: string }) {
+  const userId = await requireUserId();
+  const email = input.email?.trim().toLowerCase() || null;
+  const phone = input.phone ? normalizePhone(input.phone) : null;
+  if (!email && !phone) throw new Error("Informe um e-mail ou telefone");
+
+  let inviteeId: string | null = null;
+  const existing = await findProfileByEmailOrPhone(email ?? phone ?? "");
+  if (existing) inviteeId = existing.id;
+
+  const { error } = await supabase.from("invites").insert({
+    inviter_id: userId,
+    invitee_email: email,
+    invitee_phone: phone,
+    invitee_id: inviteeId,
+    message: input.message?.trim() || null,
+  });
+  if (error) throw error;
+  return { alreadyOnApp: Boolean(existing), profile: existing };
+}
+
+export async function listInvites(): Promise<{ sent: Invite[]; received: Invite[] }> {
+  const userId = await requireUserId();
+  const { data, error } = await supabase
+    .from("invites")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  const all = (data ?? []) as Invite[];
+  return {
+    sent: all.filter((i) => i.inviter_id === userId),
+    received: all.filter((i) => i.inviter_id !== userId),
+  };
+}
+
+export async function respondToInvite(invite: Invite, accept: boolean) {
+  const userId = await requireUserId();
+  const { error } = await supabase
+    .from("invites")
+    .update({ status: accept ? "accepted" : "declined", invitee_id: userId })
+    .eq("id", invite.id);
+  if (error) throw error;
+
+  if (accept) {
+    await addContact(invite.inviter_id);
+  }
+}
+
+export async function deleteInvite(inviteId: string) {
+  const { error } = await supabase.from("invites").delete().eq("id", inviteId);
+  if (error) throw error;
+}
+
+export async function getOrCreateDirectConversation(otherUserId: string): Promise<string> {
+  const userId = await requireUserId();
+
+  const { data: mine, error: mineErr } = await supabase
+    .from("conversation_members")
+    .select("conversation_id")
+    .eq("user_id", userId);
+  if (mineErr) throw mineErr;
+
+  const myIds = (mine ?? []).map((m) => m.conversation_id);
+  if (myIds.length > 0) {
+    const { data: shared, error: sharedErr } = await supabase
+      .from("conversation_members")
+      .select("conversation_id, conversations:conversation_id(is_group)")
+      .eq("user_id", otherUserId)
+      .in("conversation_id", myIds);
+    if (sharedErr) throw sharedErr;
+    const direct = (shared ?? []).find(
+      (row) => (row as unknown as { conversations: { is_group: boolean } | null }).conversations?.is_group === false,
+    );
+    if (direct) return direct.conversation_id;
+  }
+
+  const { data: conversation, error: convErr } = await supabase
+    .from("conversations")
+    .insert({ is_group: false, created_by: userId })
+    .select("id")
+    .single();
+  if (convErr) throw convErr;
+
+  const { error: memberErr } = await supabase.from("conversation_members").insert([
+    { conversation_id: conversation.id, user_id: userId, is_admin: true },
+    { conversation_id: conversation.id, user_id: otherUserId },
+  ]);
+  if (memberErr) throw memberErr;
+
+  return conversation.id;
+}
+
+export async function createGroupConversation(name: string, memberIds: string[]): Promise<string> {
+  const userId = await requireUserId();
+  const cleanName = name.trim();
+  if (!cleanName) throw new Error("Dê um nome ao grupo");
+  if (memberIds.length === 0) throw new Error("Escolha pelo menos um contato");
+
+  const { data: conversation, error } = await supabase
+    .from("conversations")
+    .insert({ is_group: true, name: cleanName, created_by: userId })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  const rows = [
+    { conversation_id: conversation.id, user_id: userId, is_admin: true },
+    ...memberIds.map((id) => ({ conversation_id: conversation.id, user_id: id })),
+  ];
+  const { error: memberErr } = await supabase.from("conversation_members").insert(rows);
+  if (memberErr) throw memberErr;
+
+  return conversation.id;
+}
+
+export function conversationTitle(conversation: ConversationWithPeople, myId: string) {
+  if (conversation.is_group) return conversation.name ?? "Grupo";
+  const other = conversation.members.find((m) => m.id !== myId);
+  return other?.display_name || other?.email || "Conversa";
+}
+
+export function conversationAvatarPath(conversation: ConversationWithPeople, myId: string) {
+  if (conversation.is_group) return conversation.avatar_url;
+  return conversation.members.find((m) => m.id !== myId)?.avatar_url ?? null;
+}
+
+export function messagePreview(message: Message | null) {
+  if (!message) return "Nenhuma mensagem ainda";
+  switch (message.kind) {
+    case "image":
+      return "📷 Foto";
+    case "video":
+      return "🎬 Vídeo";
+    case "audio":
+      return "🎤 Áudio";
+    default:
+      return message.body ?? "";
+  }
+}
