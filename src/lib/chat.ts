@@ -172,7 +172,7 @@ export async function sendMediaMessage(options: {
   const path = `${options.conversationId}/${userId}-${crypto.randomUUID()}.${extension}`;
 
   const { error: uploadError } = await supabase.storage.from("chat-media").upload(path, options.file, {
-    contentType: options.file.type || undefined,
+    contentType: options.file.type || "application/octet-stream",
     upsert: false,
   });
   if (uploadError) throw uploadError;
