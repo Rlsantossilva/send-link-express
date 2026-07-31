@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedContatosRouteImport } from './routes/_authenticated/contatos'
 import { Route as AuthenticatedConversasRouteImport } from './routes/_authenticated/conversas'
+import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -39,18 +40,25 @@ const AuthenticatedConversasRoute = AuthenticatedConversasRouteImport.update({
   path: '/conversas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/contatos': typeof AuthenticatedContatosRoute
   '/conversas': typeof AuthenticatedConversasRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/contatos': typeof AuthenticatedContatosRoute
   '/conversas': typeof AuthenticatedConversasRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -59,12 +67,13 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/contatos': typeof AuthenticatedContatosRoute
   '/_authenticated/conversas': typeof AuthenticatedConversasRoute
+  '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/contatos' | '/conversas'
+  fullPaths: '/' | '/auth' | '/contatos' | '/conversas' | '/perfil'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/contatos' | '/conversas'
+  to: '/' | '/auth' | '/contatos' | '/conversas' | '/perfil'
   id:
     | '__root__'
     | '/'
@@ -72,6 +81,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/contatos'
     | '/_authenticated/conversas'
+    | '/_authenticated/perfil'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -117,17 +127,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConversasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/perfil': {
+      id: '/_authenticated/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedContatosRoute: typeof AuthenticatedContatosRoute
   AuthenticatedConversasRoute: typeof AuthenticatedConversasRoute
+  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedContatosRoute: AuthenticatedContatosRoute,
   AuthenticatedConversasRoute: AuthenticatedConversasRoute,
+  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
