@@ -1,25 +1,19 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-export const CPF_LOGIN_DOMAIN = "cpf.zaptri.app";
-
-export function onlyDigits(value: string) {
-  return value.replace(/\D/g, "");
-}
-
-export function cpfLoginEmail(cpf: string) {
-  return `${onlyDigits(cpf)}@${CPF_LOGIN_DOMAIN}`;
-}
+import { cpfLoginEmail, onlyDigits } from "@/lib/cpf";
 
 const inviteSignupSchema = z.object({
   fullName: z.string().trim().min(3).max(120),
   cpf: z.string().transform(onlyDigits).refine((v) => v.length === 11, "CPF deve ter 11 dígitos"),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data de nascimento inválida"),
-  pin: z.string().transform(onlyDigits).refine((v) => v.length >= 6 && v.length <= 8, "O PIN deve ter de 6 a 8 dígitos"),
-  email: z.string().trim().email().max(255).optional().or(z.literal("")),
-  phone: z.string().trim().max(20).optional().or(z.literal("")),
-  message: z.string().trim().max(300).optional().or(z.literal("")),
+  pin: z
+    .string()
+    .transform(onlyDigits)
+    .refine((v) => v.length >= 6 && v.length <= 8, "O PIN deve ter de 6 a 8 dígitos"),
+  email: z.string().trim().max(255).optional(),
+  phone: z.string().trim().max(20).optional(),
+  message: z.string().trim().max(300).optional(),
 });
 
 export const registerInvitedUser = createServerFn({ method: "POST" })
@@ -34,7 +28,7 @@ export const registerInvitedUser = createServerFn({ method: "POST" })
 
     const { data: existing } = await supabaseAdmin
       .from("profiles")
-      .select("id, display_name")
+      .select("id")
       .eq("cpf", data.cpf)
       .maybeSingle();
 
