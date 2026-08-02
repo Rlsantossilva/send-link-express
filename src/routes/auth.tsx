@@ -54,10 +54,13 @@ function AuthPage() {
   async function handleSignIn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const parsed = signInSchema.safeParse({
-      email: String(form.get("email") ?? ""),
-      password: String(form.get("password") ?? ""),
-    });
+    const identifier = String(form.get("identifier") ?? "").trim();
+    const password = String(form.get("password") ?? "");
+    const digits = onlyDigits(identifier);
+    const isCpf = !identifier.includes("@") && digits.length === 11;
+    const email = isCpf ? cpfLoginEmail(digits) : identifier;
+
+    const parsed = signInSchema.safeParse({ email, password });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
       return;
@@ -67,11 +70,12 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword(parsed.data);
     setLoading(false);
     if (error) {
-      toast.error("E-mail ou senha incorretos");
+      toast.error(isCpf ? "CPF ou PIN incorretos" : "E-mail ou senha incorretos");
       return;
     }
     navigate({ to: "/conversas", replace: true });
   }
+
 
   async function handleSignUp(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
