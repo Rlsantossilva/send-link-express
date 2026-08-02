@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, MessageSquare, Send, Trash2, UserPlus, X } from "lucide-react";
+import { Check, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
   addContact,
-  createInvite,
   deleteInvite,
   findProfileByEmailOrPhone,
   getOrCreateDirectConversation,
@@ -16,6 +15,8 @@ import {
   respondToInvite,
   type Invite,
 } from "@/lib/chat";
+import { registerInvitedUser } from "@/lib/invites.functions";
+import { formatCpf, onlyDigits } from "@/lib/cpf";
 import { AppShell } from "@/components/app-shell";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
@@ -46,13 +47,6 @@ const identifierSchema = z
   .min(5, "Informe um e-mail ou telefone válido")
   .max(255, "Valor muito longo");
 
-const emailSchema = z.string().trim().email().max(255);
-const phoneSchema = z
-  .string()
-  .trim()
-  .min(8)
-  .max(20)
-  .regex(/^[\d+\s()-]+$/);
 
 function InviteRow({
   invite,
