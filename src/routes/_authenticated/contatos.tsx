@@ -326,24 +326,23 @@ function ContactsPage() {
               <p className="text-sm text-muted-foreground">Nenhum contato ainda.</p>
             ) : (
               contacts.map((contact) => (
-                <div key={contact.id} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2">
-                  <UserAvatar path={contact.profile?.avatar_url} name={contact.profile?.display_name} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">
-                      {contact.nickname || contact.profile?.display_name}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {contact.profile?.status_text || contact.profile?.email}
-                    </p>
-                  </div>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    aria-label="Abrir conversa"
+                <div key={contact.id} className="flex items-center gap-3 rounded-xl border border-border px-1 py-1">
+                  <button
+                    type="button"
+                    className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-muted"
+                    disabled={openChat.isPending}
                     onClick={() => openChat.mutate(contact.contact_id)}
                   >
-                    <MessageSquare className="size-4 text-primary" />
-                  </Button>
+                    <UserAvatar path={contact.profile?.avatar_url} name={contact.profile?.display_name} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold">
+                        {contact.nickname || contact.profile?.display_name}
+                      </span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {contact.profile?.status_text || contact.profile?.email}
+                      </span>
+                    </span>
+                  </button>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -354,6 +353,7 @@ function ContactsPage() {
                   </Button>
                 </div>
               ))
+
             )}
           </TabsContent>
 
