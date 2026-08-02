@@ -3,6 +3,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { cpfLoginEmail, onlyDigits } from "@/lib/cpf";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,10 +56,13 @@ function AuthPage() {
   async function handleSignIn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const parsed = signInSchema.safeParse({
-      email: String(form.get("email") ?? ""),
-      password: String(form.get("password") ?? ""),
-    });
+    const identifier = String(form.get("identifier") ?? "").trim();
+    const password = String(form.get("password") ?? "");
+    const digits = onlyDigits(identifier);
+    const isCpf = !identifier.includes("@") && digits.length === 11;
+    const email = isCpf ? cpfLoginEmail(digits) : identifier;
+
+    const parsed = signInSchema.safeParse({ email, password });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
       return;
@@ -67,11 +72,12 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword(parsed.data);
     setLoading(false);
     if (error) {
-      toast.error("E-mail ou senha incorretos");
+      toast.error(isCpf ? "CPF ou PIN incorretos" : "E-mail ou senha incorretos");
       return;
     }
     navigate({ to: "/conversas", replace: true });
   }
+
 
   async function handleSignUp(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -154,11 +160,17 @@ function AuthPage() {
             <TabsContent value="entrar">
               <form className="space-y-4" onSubmit={handleSignIn}>
                 <div className="space-y-1.5">
-                  <Label htmlFor="signin-email">E-mail</Label>
-                  <Input id="signin-email" name="email" type="email" autoComplete="email" required />
+                  <Label htmlFor="signin-identifier">CPF ou e-mail</Label>
+                  <Input
+                    id="signin-identifier"
+                    name="identifier"
+                    autoComplete="username"
+                    placeholder="000.000.000-00 ou você@email.com"
+                    required
+                  />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="signin-password">Senha</Label>
+                  <Label htmlFor="signin-password">Senha ou PIN</Label>
                   <Input
                     id="signin-password"
                     name="password"
@@ -167,6 +179,7 @@ function AuthPage() {
                     required
                   />
                 </div>
+
                 <Button type="submit" className="w-full" disabled={loading}>
                   Entrar
                 </Button>
