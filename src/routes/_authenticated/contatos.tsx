@@ -90,8 +90,19 @@ function ContactsPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [identifier, setIdentifier] = useState("");
-  const [inviteValue, setInviteValue] = useState("");
-  const [inviteMessage, setInviteMessage] = useState("");
+  const emptyForm = {
+    fullName: "",
+    cpf: "",
+    birthDate: "",
+    pin: "",
+    email: "",
+    phone: "",
+    message: "",
+  };
+  const [form, setForm] = useState(emptyForm);
+  const setField = (key: keyof typeof emptyForm, value: string) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
 
   const { data: contacts = [] } = useQuery({ queryKey: ["contacts"], queryFn: listContacts });
   const { data: invites } = useQuery({ queryKey: ["invites"], queryFn: listInvites });
