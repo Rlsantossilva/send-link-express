@@ -225,26 +225,80 @@ function ContactsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Enviar convite</CardTitle>
-            <CardDescription>Funciona também para quem ainda não tem conta.</CardDescription>
+            <CardTitle className="text-base">Convidar e cadastrar pessoa</CardTitle>
+            <CardDescription>
+              A conta é criada na hora: ela entra com o CPF e o PIN que você definir aqui.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="invite-value">E-mail ou telefone</Label>
+              <Label htmlFor="invite-name">Nome completo</Label>
               <Input
-                id="invite-value"
-                value={inviteValue}
-                onChange={(event) => setInviteValue(event.target.value)}
-                placeholder="amigo@exemplo.com"
+                id="invite-name"
+                value={form.fullName}
+                onChange={(event) => setField("fullName", event.target.value)}
+                maxLength={120}
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="invite-cpf">CPF</Label>
+                <Input
+                  id="invite-cpf"
+                  value={formatCpf(form.cpf)}
+                  onChange={(event) => setField("cpf", onlyDigits(event.target.value).slice(0, 11))}
+                  inputMode="numeric"
+                  placeholder="000.000.000-00"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="invite-birth">Data de nascimento</Label>
+                <Input
+                  id="invite-birth"
+                  type="date"
+                  value={form.birthDate}
+                  onChange={(event) => setField("birthDate", event.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="invite-pin">Senha PIN (6 a 8 dígitos)</Label>
+                <Input
+                  id="invite-pin"
+                  value={form.pin}
+                  onChange={(event) => setField("pin", onlyDigits(event.target.value).slice(0, 8))}
+                  inputMode="numeric"
+                  placeholder="123456"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="invite-phone">Telefone (opcional)</Label>
+                <Input
+                  id="invite-phone"
+                  value={form.phone}
+                  onChange={(event) => setField("phone", event.target.value)}
+                  inputMode="tel"
+                  placeholder="+55 11 99999-0000"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="invite-email">E-mail (opcional)</Label>
+              <Input
+                id="invite-email"
+                value={form.email}
+                onChange={(event) => setField("email", event.target.value)}
                 maxLength={255}
+                placeholder="amigo@exemplo.com"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="invite-message">Mensagem (opcional)</Label>
+              <Label htmlFor="invite-message">Mensagem de boas-vindas (opcional)</Label>
               <Textarea
                 id="invite-message"
-                value={inviteMessage}
-                onChange={(event) => setInviteMessage(event.target.value)}
+                value={form.message}
+                onChange={(event) => setField("message", event.target.value)}
                 maxLength={300}
                 rows={2}
               />
@@ -254,8 +308,9 @@ function ContactsPage() {
               disabled={inviteMutation.isPending}
               onClick={() => inviteMutation.mutate()}
             >
-              <Send className="size-4" /> Enviar convite
+              <UserPlus className="size-4" /> Cadastrar e conversar
             </Button>
+
           </CardContent>
         </Card>
 
