@@ -160,11 +160,17 @@ function AuthPage() {
             <TabsContent value="entrar">
               <form className="space-y-4" onSubmit={handleSignIn}>
                 <div className="space-y-1.5">
-                  <Label htmlFor="signin-email">E-mail</Label>
-                  <Input id="signin-email" name="email" type="email" autoComplete="email" required />
+                  <Label htmlFor="signin-identifier">CPF ou e-mail</Label>
+                  <Input
+                    id="signin-identifier"
+                    name="identifier"
+                    autoComplete="username"
+                    placeholder="000.000.000-00 ou você@email.com"
+                    required
+                  />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="signin-password">Senha</Label>
+                  <Label htmlFor="signin-password">Senha ou PIN</Label>
                   <Input
                     id="signin-password"
                     name="password"
@@ -173,6 +179,7 @@ function AuthPage() {
                     required
                   />
                 </div>
+
                 <Button type="submit" className="w-full" disabled={loading}>
                   Entrar
                 </Button>
