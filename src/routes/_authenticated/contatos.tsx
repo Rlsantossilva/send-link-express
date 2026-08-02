@@ -131,28 +131,45 @@ function ContactsPage() {
 
   const inviteMutation = useMutation({
     mutationFn: async () => {
-      const value = inviteValue.trim();
-      const isEmail = emailSchema.safeParse(value).success;
-      const isPhone = phoneSchema.safeParse(value).success;
-      if (!isEmail && !isPhone) throw new Error("Informe um e-mail ou telefone válido");
-      const message = inviteMessage.trim().slice(0, 300);
-      return createInvite({
-        ...(isEmail ? { email: value } : { phone: value }),
-        ...(message ? { message } : {}),
-      });
+      const parsed = z
+        .object({
+          fullName: z.string().trim().min(3, "Informe o nome completo").max(120),
+          cpf: z
+            .string()
+            .transform(onlyDigits)
+            .refine((v) => v.length === 11, "CPF deve ter 11 dígitos"),
+          birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de nascimento"),
+          pin: z
+            .string()
+            .transform(onlyDigits)
+            .refine((v) => v.length >= 6 && v.length <= 8, "O PIN deve ter de 6 a 8 dígitos"),
+          email: z.string().trim().max(255).optional(),
+          phone: z.string().trim().max(20).optional(),
+          message: z.string().trim().max(300).optional(),
+        })
+        .safeParse(form);
+      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos");
+      if (parsed.data.email && !z.string().email().safeParse(parsed.data.email).success) {
+        throw new Error("E-mail inválido");
+      }
+      const result = await registerInvitedUser({ data: parsed.data });
+      const conversationId = await getOrCreateDirectConversation(result.userId);
+      return { ...result, conversationId };
     },
     onSuccess: (result) => {
-      setInviteValue("");
-      setInviteMessage("");
+      setForm(emptyForm);
       refresh();
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
       toast.success(
-        result.alreadyOnApp
-          ? "Convite enviado — essa pessoa já usa o Zap Tri!"
-          : "Convite registrado. Ela verá o convite ao entrar no app.",
+        result.alreadyExisted
+          ? `${result.fullName} já tinha conta e virou seu contato.`
+          : `Conta de ${result.fullName} criada! Ela entra com o CPF e o PIN.`,
       );
+      void navigate({ to: "/conversas", search: { c: result.conversationId } });
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
 
   const respondMutation = useMutation({
     mutationFn: ({ invite, accept }: { invite: Invite; accept: boolean }) => respondToInvite(invite, accept),
