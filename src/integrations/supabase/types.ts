@@ -235,15 +235,6 @@ export type Database = {
         Args: { _conversation_id: string; _user_id: string }
         Returns: boolean
       }
-      lookup_profile: {
-        Args: { _email?: string; _phone?: string }
-        Returns: {
-          avatar_url: string
-          display_name: string
-          id: string
-          status_text: string
-        }[]
-      }
       profiles_are_related: { Args: { _other: string }; Returns: boolean }
     }
     Enums: {

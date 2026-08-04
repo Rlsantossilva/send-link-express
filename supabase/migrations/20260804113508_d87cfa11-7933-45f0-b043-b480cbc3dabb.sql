@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.lookup_profile(text, text);
