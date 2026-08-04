@@ -105,7 +105,10 @@ function ConversationsPage() {
         >
           <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
             <h1 className="font-display text-lg font-bold">Conversas</h1>
-            <NewConversationDialog onOpened={openConversation} />
+            <div className="flex items-center gap-2">
+              <NewGroupDialog onOpened={openConversation} />
+              <NewConversationDialog onOpened={openConversation} />
+            </div>
           </header>
 
           <div className="flex-1 overflow-y-auto">
