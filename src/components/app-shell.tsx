@@ -1,19 +1,21 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageSquare, Users, UserRound, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getMyProfile } from "@/lib/chat";
 import { Button } from "@/components/ui/button";
 
 const NAV = [
   { to: "/conversas", label: "Conversas", icon: MessageSquare },
   { to: "/contatos", label: "Contatos", icon: Users },
-  { to: "/perfil", label: "Perfil", icon: UserRound },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: getMyProfile });
+  const myName = profile?.display_name || profile?.email || "Você";
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -32,7 +34,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="font-display text-lg font-bold">Zap Tri</span>
         </Link>
 
-        <nav className="flex gap-1 md:mt-8 md:flex-col md:gap-1">
+        <nav className="flex items-center gap-1 md:mt-8 md:flex-col md:items-stretch md:gap-1">
           {NAV.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
@@ -43,6 +45,14 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="hidden sm:inline">{label}</span>
             </Link>
           ))}
+
+          <Link
+            to="/perfil"
+            className="flex flex-col items-center gap-0.5 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[status=active]:bg-primary data-[status=active]:text-primary-foreground"
+          >
+            <UserRound className="size-4" />
+            <span className="max-w-28 truncate text-xs font-semibold">{myName}</span>
+          </Link>
         </nav>
 
         <Button variant="ghost" size="sm" className="md:mt-auto md:justify-start" onClick={signOut}>

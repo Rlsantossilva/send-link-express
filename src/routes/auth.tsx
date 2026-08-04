@@ -26,7 +26,12 @@ export const Route = createFileRoute("/auth")({
 });
 
 const signUpSchema = z.object({
-  displayName: z.string().trim().min(2, "Informe seu nome").max(60, "Nome muito longo"),
+  fullName: z.string().trim().min(3, "Informe seu nome completo").max(120, "Nome muito longo"),
+  cpf: z
+    .string()
+    .transform(onlyDigits)
+    .refine((value) => value.length === 11, "CPF deve ter 11 dígitos"),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de nascimento"),
   phone: z
     .string()
     .trim()
@@ -83,7 +88,9 @@ function AuthPage() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const parsed = signUpSchema.safeParse({
-      displayName: String(form.get("displayName") ?? ""),
+      fullName: String(form.get("fullName") ?? ""),
+      cpf: String(form.get("cpf") ?? ""),
+      birthDate: String(form.get("birthDate") ?? ""),
       phone: String(form.get("phone") ?? ""),
       email: String(form.get("email") ?? ""),
       password: String(form.get("password") ?? ""),
@@ -100,7 +107,10 @@ function AuthPage() {
       options: {
         emailRedirectTo: window.location.origin,
         data: {
-          display_name: parsed.data.displayName,
+          display_name: parsed.data.fullName.split(" ")[0] ?? parsed.data.fullName,
+          full_name: parsed.data.fullName,
+          cpf: parsed.data.cpf,
+          birth_date: parsed.data.birthDate,
           phone: parsed.data.phone.replace(/[^\d+]/g, ""),
         },
       },
@@ -189,8 +199,25 @@ function AuthPage() {
             <TabsContent value="criar">
               <form className="space-y-4" onSubmit={handleSignUp}>
                 <div className="space-y-1.5">
-                  <Label htmlFor="signup-name">Nome de exibição</Label>
-                  <Input id="signup-name" name="displayName" maxLength={60} required />
+                  <Label htmlFor="signup-name">Nome completo</Label>
+                  <Input id="signup-name" name="fullName" maxLength={120} required />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-cpf">CPF</Label>
+                    <Input
+                      id="signup-cpf"
+                      name="cpf"
+                      inputMode="numeric"
+                      placeholder="000.000.000-00"
+                      maxLength={14}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-birth">Data de nascimento</Label>
+                    <Input id="signup-birth" name="birthDate" type="date" required />
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="signup-phone">Telefone</Label>

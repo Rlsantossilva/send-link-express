@@ -20,7 +20,7 @@ import { AppShell } from "@/components/app-shell";
 import { UserAvatar } from "@/components/user-avatar";
 import { Composer } from "@/components/chat/composer";
 import { MessageItem } from "@/components/chat/message-item";
-import { NewConversationDialog } from "@/components/chat/new-conversation-dialog";
+import { NewConversationDialog, NewGroupDialog } from "@/components/chat/new-conversation-dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -105,7 +105,10 @@ function ConversationsPage() {
         >
           <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
             <h1 className="font-display text-lg font-bold">Conversas</h1>
-            <NewConversationDialog onOpened={openConversation} />
+            <div className="flex items-center gap-2">
+              <NewGroupDialog onOpened={openConversation} />
+              <NewConversationDialog onOpened={openConversation} />
+            </div>
           </header>
 
           <div className="flex-1 overflow-y-auto">
