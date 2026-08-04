@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { lookupProfile, type PublicProfileLookup } from "@/lib/profiles.functions";
+import { answerInvite } from "@/lib/invites.functions";
 
 
 export type Profile = {
@@ -281,16 +282,7 @@ export async function listInvites(): Promise<{ sent: Invite[]; received: Invite[
 }
 
 export async function respondToInvite(invite: Invite, accept: boolean) {
-  const userId = await requireUserId();
-  const { error } = await supabase
-    .from("invites")
-    .update({ status: accept ? "accepted" : "declined", invitee_id: userId })
-    .eq("id", invite.id);
-  if (error) throw error;
-
-  if (accept) {
-    await addContact(invite.inviter_id);
-  }
+  return await answerInvite({ data: { inviteId: invite.id, accept } });
 }
 
 export async function deleteInvite(inviteId: string) {

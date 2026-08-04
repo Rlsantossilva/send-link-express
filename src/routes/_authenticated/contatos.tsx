@@ -153,7 +153,17 @@ function ContactsPage() {
 
   const respondMutation = useMutation({
     mutationFn: ({ invite, accept }: { invite: Invite; accept: boolean }) => respondToInvite(invite, accept),
-    onSuccess: () => refresh(),
+    onSuccess: async (result) => {
+      refresh();
+      if (!result.accepted) {
+        toast.success("Convite recusado");
+        return;
+      }
+      const conversationId = await getOrCreateDirectConversation(result.inviterId);
+      await queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      toast.success("Contato adicionado");
+      await navigate({ to: "/conversas", search: { c: conversationId } });
+    },
     onError: (error: Error) => toast.error(error.message),
   });
 
