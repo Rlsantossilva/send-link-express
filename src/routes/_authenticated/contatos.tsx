@@ -133,7 +133,11 @@ function ContactsPage() {
       if (parsed.data.email && !z.string().email().safeParse(parsed.data.email).success) {
         throw new Error("E-mail inválido");
       }
-      return createInvite(parsed.data);
+      return createInvite({
+        ...(parsed.data.email ? { email: parsed.data.email } : {}),
+        ...(parsed.data.phone ? { phone: parsed.data.phone } : {}),
+        ...(parsed.data.message ? { message: parsed.data.message } : {}),
+      });
     },
     onSuccess: (result) => {
       setForm(emptyForm);
