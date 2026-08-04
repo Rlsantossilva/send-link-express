@@ -20,7 +20,7 @@ import { AppShell } from "@/components/app-shell";
 import { UserAvatar } from "@/components/user-avatar";
 import { Composer } from "@/components/chat/composer";
 import { MessageItem } from "@/components/chat/message-item";
-import { NewConversationDialog } from "@/components/chat/new-conversation-dialog";
+import { NewConversationDialog, NewGroupDialog } from "@/components/chat/new-conversation-dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
