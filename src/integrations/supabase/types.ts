@@ -235,6 +235,7 @@ export type Database = {
         Args: { _conversation_id: string; _user_id: string }
         Returns: boolean
       }
+      profiles_are_related: { Args: { _other: string }; Returns: boolean }
     }
     Enums: {
       invite_status: "pending" | "accepted" | "declined"

@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { lookupProfile, type PublicProfileLookup } from "@/lib/profiles.functions";
+
 
 export type Profile = {
   id: string;
@@ -216,17 +218,12 @@ export async function listContacts(): Promise<Contact[]> {
   }));
 }
 
-export async function findProfileByEmailOrPhone(value: string): Promise<Profile | null> {
+export async function findProfileByEmailOrPhone(value: string): Promise<PublicProfileLookup | null> {
   const trimmed = value.trim();
-  if (!trimmed) return null;
-  const isEmail = trimmed.includes("@");
-  const query = supabase.from("profiles").select("id, display_name, phone, avatar_url, status_text, email");
-  const { data, error } = isEmail
-    ? await query.ilike("email", trimmed).limit(1)
-    : await query.eq("phone", normalizePhone(trimmed)).limit(1);
-  if (error) throw error;
-  return data?.[0] ?? null;
+  if (trimmed.length < 3) return null;
+  return await lookupProfile({ data: { value: trimmed } });
 }
+
 
 export function normalizePhone(value: string) {
   return value.replace(/[^\d+]/g, "");
