@@ -1,4 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
+import { lookupProfile, type PublicProfileLookup } from "@/lib/profiles.functions";
+
 
 export type Profile = {
   id: string;
