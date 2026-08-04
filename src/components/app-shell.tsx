@@ -15,7 +15,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: getMyProfile });
-  const myName = profile?.display_name || profile?.full_name || profile?.email || "Você";
+  const myName = profile?.display_name || profile?.email || "Você";
 
   async function signOut() {
     await queryClient.cancelQueries();
