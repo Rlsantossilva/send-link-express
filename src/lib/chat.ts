@@ -101,7 +101,7 @@ export async function listConversations(): Promise<ConversationWithPeople[]> {
       .order("last_message_at", { ascending: false }),
     supabase
       .from("conversation_members")
-      .select("conversation_id, user_id, profiles:user_id(id, display_name, phone, avatar_url, status_text, email)")
+      .select("conversation_id, user_id, profiles:user_id(id, display_name, avatar_url, status_text)")
       .in("conversation_id", ids),
     supabase
       .from("messages")
@@ -207,7 +207,7 @@ export async function listContacts(): Promise<Contact[]> {
   const userId = await requireUserId();
   const { data, error } = await supabase
     .from("contacts")
-    .select("id, contact_id, nickname, profiles:contact_id(id, display_name, phone, avatar_url, status_text, email)")
+    .select("id, contact_id, nickname, profiles:contact_id(id, display_name, avatar_url, status_text)")
     .eq("owner_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
