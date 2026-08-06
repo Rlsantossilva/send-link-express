@@ -101,7 +101,7 @@ export async function listConversations(): Promise<ConversationWithPeople[]> {
       .order("last_message_at", { ascending: false }),
     supabase
       .from("conversation_members")
-      .select("conversation_id, user_id, profiles:user_id(id, display_name, avatar_url, status_text)")
+      .select("conversation_id, user_id")
       .in("conversation_id", ids),
     supabase
       .from("messages")
@@ -114,9 +114,21 @@ export async function listConversations(): Promise<ConversationWithPeople[]> {
   if (membersRes.error) throw membersRes.error;
   if (messagesRes.error) throw messagesRes.error;
 
+  const memberUserIds = [...new Set((membersRes.data ?? []).map((row) => row.user_id))];
+  const { data: memberProfiles, error: profilesError } = memberUserIds.length
+    ? await supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url, status_text")
+        .in("id", memberUserIds)
+    : { data: [], error: null };
+  if (profilesError) throw profilesError;
+
+  const profilesById = new Map(
+    (memberProfiles ?? []).map((profile) => [profile.id, { ...profile, phone: null, email: null } as Profile]),
+  );
   const membersByConv = new Map<string, Profile[]>();
   for (const row of membersRes.data ?? []) {
-    const profile = (row as unknown as { profiles: Profile | null }).profiles;
+    const profile = profilesById.get(row.user_id);
     if (!profile) continue;
     const list = membersByConv.get(row.conversation_id) ?? [];
     list.push(profile);
@@ -207,15 +219,28 @@ export async function listContacts(): Promise<Contact[]> {
   const userId = await requireUserId();
   const { data, error } = await supabase
     .from("contacts")
-    .select("id, contact_id, nickname, profiles:contact_id(id, display_name, avatar_url, status_text)")
+    .select("id, contact_id, nickname")
     .eq("owner_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
+
+  const contactIds = [...new Set((data ?? []).map((row) => row.contact_id))];
+  const { data: profiles, error: profilesError } = contactIds.length
+    ? await supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url, status_text")
+        .in("id", contactIds)
+    : { data: [], error: null };
+  if (profilesError) throw profilesError;
+
+  const profilesById = new Map(
+    (profiles ?? []).map((profile) => [profile.id, { ...profile, phone: null, email: null } as Profile]),
+  );
   return (data ?? []).map((row) => ({
     id: row.id,
     contact_id: row.contact_id,
     nickname: row.nickname,
-    profile: (row as unknown as { profiles: Profile | null }).profiles,
+    profile: profilesById.get(row.contact_id) ?? null,
   }));
 }
 
