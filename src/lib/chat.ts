@@ -347,7 +347,7 @@ export async function getOrCreateDirectConversation(otherUserId: string): Promis
 
   const { error: memberErr } = await supabase.from("conversation_members").insert([
     { conversation_id: conversation.id, user_id: userId, is_admin: true },
-    { conversation_id: conversation.id, user_id: otherUserId },
+    { conversation_id: conversation.id, user_id: otherUserId, is_admin: false },
   ]);
   if (memberErr) throw memberErr;
 
@@ -369,7 +369,7 @@ export async function createGroupConversation(name: string, memberIds: string[])
 
   const rows = [
     { conversation_id: conversation.id, user_id: userId, is_admin: true },
-    ...memberIds.map((id) => ({ conversation_id: conversation.id, user_id: id })),
+    ...memberIds.map((id) => ({ conversation_id: conversation.id, user_id: id, is_admin: false })),
   ];
   const { error: memberErr } = await supabase.from("conversation_members").insert(rows);
   if (memberErr) throw memberErr;
