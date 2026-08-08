@@ -136,6 +136,11 @@ function ConversationsPage() {
                     <p className="truncate text-sm font-semibold">
                       {conversationTitle(conversation, myId ?? "")}
                     </p>
+                    {!conversation.is_group ? (
+                      <p className="truncate text-xs text-muted-foreground">
+                        {conversation.members.find((m) => m.id !== myId)?.email ?? ""}
+                      </p>
+                    ) : null}
                     <p className="truncate text-xs text-muted-foreground">
                       {messagePreview(conversation.lastMessage)}
                     </p>
@@ -164,10 +169,12 @@ function ConversationsPage() {
                   name={conversationTitle(active, myId ?? "")}
                   className="size-9"
                 />
-                <div>
-                  <p className="text-sm font-semibold">{conversationTitle(active, myId ?? "")}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {active.is_group ? `${active.members.length} participantes` : "Conversa individual"}
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{conversationTitle(active, myId ?? "")}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {active.is_group
+                      ? `${active.members.length} participantes`
+                      : active.members.find((m) => m.id !== myId)?.email || "Conversa individual"}
                   </p>
                 </div>
               </header>
