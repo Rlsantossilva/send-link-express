@@ -54,21 +54,37 @@ function ConversationsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressed = useRef(false);
+  const [menuConversation, setMenuConversation] = useState<ConversationWithPeople | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const { data: myId } = useQuery({ queryKey: ["my-id"], queryFn: requireUserId });
-  const { data: conversations = [], isLoading } = useQuery({
+  const { data: allConversations = [], isLoading } = useQuery({
     queryKey: ["conversations"],
     queryFn: listConversations,
   });
 
+  const conversations = useMemo(
+    () => allConversations.filter((conversation) => conversation.is_archived === showArchived),
+    [allConversations, showArchived],
+  );
+  const archivedCount = allConversations.filter((conversation) => conversation.is_archived).length;
+
   const active = useMemo(
-    () => conversations.find((conversation) => conversation.id === activeId) ?? null,
-    [conversations, activeId],
+    () => allConversations.find((conversation) => conversation.id === activeId) ?? null,
+    [allConversations, activeId],
   );
 
   const { data: messages = [] } = useQuery({
     queryKey: ["messages", activeId],
     queryFn: () => listMessages(activeId as string),
+    enabled: Boolean(activeId),
+  });
+
+  const { data: reactions = [] } = useQuery({
+    queryKey: ["reactions", activeId],
+    queryFn: () => listReactions(activeId as string),
     enabled: Boolean(activeId),
   });
 
