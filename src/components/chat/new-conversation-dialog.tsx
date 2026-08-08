@@ -59,8 +59,13 @@ export function NewConversationDialog({ onOpened }: { onOpened: (conversationId:
                 onClick={() => directMutation.mutate(contact.contact_id)}
               >
                 <UserAvatar path={contact.profile?.avatar_url} name={contact.profile?.display_name} />
-                <span className="text-sm font-medium">
-                  {contact.nickname || contact.profile?.display_name || contact.profile?.email}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">
+                    {contact.nickname || contact.profile?.display_name || contact.profile?.email}
+                  </span>
+                  {contact.profile?.email ? (
+                    <span className="block truncate text-xs text-muted-foreground">{contact.profile.email}</span>
+                  ) : null}
                 </span>
               </button>
             ))
@@ -130,8 +135,13 @@ export function NewGroupDialog({ onOpened }: { onOpened: (conversationId: string
                   name={contact.profile?.display_name}
                   className="size-8"
                 />
-                <span className="text-sm">
-                  {contact.nickname || contact.profile?.display_name || contact.profile?.email}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm">
+                    {contact.nickname || contact.profile?.display_name || contact.profile?.email}
+                  </span>
+                  {contact.profile?.email ? (
+                    <span className="block truncate text-xs text-muted-foreground">{contact.profile.email}</span>
+                  ) : null}
                 </span>
               </label>
             ))}
