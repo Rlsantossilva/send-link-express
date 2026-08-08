@@ -38,6 +38,14 @@ export type Conversation = {
 export type ConversationWithPeople = Conversation & {
   members: Profile[];
   lastMessage: Message | null;
+  is_archived: boolean;
+};
+
+export type MessageReaction = {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
 };
 
 export type Contact = {
