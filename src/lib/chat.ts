@@ -118,13 +118,13 @@ export async function listConversations(): Promise<ConversationWithPeople[]> {
   const { data: memberProfiles, error: profilesError } = memberUserIds.length
     ? await supabase
         .from("profiles")
-        .select("id, display_name, avatar_url, status_text")
+        .select("id, display_name, avatar_url, status_text, email")
         .in("id", memberUserIds)
     : { data: [], error: null };
   if (profilesError) throw profilesError;
 
   const profilesById = new Map(
-    (memberProfiles ?? []).map((profile) => [profile.id, { ...profile, phone: null, email: null } as Profile]),
+    (memberProfiles ?? []).map((profile) => [profile.id, { ...profile, phone: null } as Profile]),
   );
   const membersByConv = new Map<string, Profile[]>();
   for (const row of membersRes.data ?? []) {
@@ -228,13 +228,13 @@ export async function listContacts(): Promise<Contact[]> {
   const { data: profiles, error: profilesError } = contactIds.length
     ? await supabase
         .from("profiles")
-        .select("id, display_name, avatar_url, status_text")
+        .select("id, display_name, avatar_url, status_text, email")
         .in("id", contactIds)
     : { data: [], error: null };
   if (profilesError) throw profilesError;
 
   const profilesById = new Map(
-    (profiles ?? []).map((profile) => [profile.id, { ...profile, phone: null, email: null } as Profile]),
+    (profiles ?? []).map((profile) => [profile.id, { ...profile, phone: null } as Profile]),
   );
   return (data ?? []).map((row) => ({
     id: row.id,
