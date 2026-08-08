@@ -52,6 +52,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <UserRound className="size-4" />
             <span className="max-w-28 truncate text-xs font-semibold">{myName}</span>
+            {profile?.email ? (
+              <span className="max-w-28 truncate text-[10px] text-muted-foreground">{profile.email}</span>
+            ) : null}
           </Link>
         </nav>
 

@@ -283,8 +283,13 @@ function ContactsPage() {
                       <span className="block truncate text-sm font-semibold">
                         {contact.nickname || contact.profile?.display_name}
                       </span>
+                      {contact.profile?.email ? (
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {contact.profile.email}
+                        </span>
+                      ) : null}
                       <span className="block truncate text-xs text-muted-foreground">
-                        {contact.profile?.status_text || contact.profile?.email}
+                        {contact.profile?.status_text}
                       </span>
                     </span>
                   </button>
