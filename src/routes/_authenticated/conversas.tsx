@@ -98,6 +98,9 @@ function ConversationsPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => {
         void queryClient.invalidateQueries({ queryKey: ["conversations"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["reactions"] });
+      })
       .subscribe();
 
     return () => {
