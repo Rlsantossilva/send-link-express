@@ -344,6 +344,9 @@ function ConversationsPage() {
                       senderName={sender?.display_name ?? "Alguém"}
                       senderAvatar={sender?.avatar_url}
                       showSender={active.is_group}
+                      reactions={reactions.filter((r) => r.message_id === message.id)}
+                      myId={myId ?? ""}
+                      onReact={(messageId, emoji) => reactMutation.mutate({ messageId, emoji })}
                       onDelete={(id) => removeMessage.mutate(id)}
                     />
                   );
