@@ -94,11 +94,12 @@ export async function listConversations(): Promise<ConversationWithPeople[]> {
 
   const { data: myMemberships, error: memberErr } = await supabase
     .from("conversation_members")
-    .select("conversation_id")
+    .select("conversation_id, is_archived")
     .eq("user_id", userId);
   if (memberErr) throw memberErr;
 
   const ids = (myMemberships ?? []).map((m) => m.conversation_id);
+  const archivedById = new Map((myMemberships ?? []).map((m) => [m.conversation_id, m.is_archived]));
   if (ids.length === 0) return [];
 
   const [convRes, membersRes, messagesRes] = await Promise.all([
