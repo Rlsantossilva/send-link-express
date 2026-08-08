@@ -1,9 +1,14 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, Trash2 } from "lucide-react";
-import { createSignedUrl, type Message } from "@/lib/chat";
+import { Copy, Download, Scissors, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { createSignedUrl, type Message, type MessageReaction } from "@/lib/chat";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+
+const REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏", "🔥", "🎉"];
 
 function timeLabel(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -52,49 +57,154 @@ export function MessageItem({
   senderName,
   senderAvatar,
   showSender,
+  reactions,
+  myId,
   onDelete,
+  onReact,
 }: {
   message: Message;
   isOwn: boolean;
   senderName: string;
   senderAvatar?: string | null | undefined;
   showSender: boolean;
+  reactions: MessageReaction[];
+  myId: string;
   onDelete: (id: string) => void;
+  onReact: (messageId: string, emoji: string) => void;
 }) {
+  const [open, setOpen] = useState(false);
+
+  const grouped = new Map<string, MessageReaction[]>();
+  for (const reaction of reactions) {
+    const list = grouped.get(reaction.emoji) ?? [];
+    list.push(reaction);
+    grouped.set(reaction.emoji, list);
+  }
+
+  async function copyContent() {
+    try {
+      const text = message.body?.trim()
+        ? message.body
+        : message.media_path
+          ? await createSignedUrl("chat-media", message.media_path)
+          : "";
+      if (!text) throw new Error("Nada para copiar");
+      await navigator.clipboard.writeText(text);
+      toast.success(message.kind === "text" ? "Texto copiado" : "Link da mídia copiado");
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  }
+
   return (
     <div className={cn("flex items-end gap-2", isOwn ? "justify-end" : "justify-start")}>
       {!isOwn ? <UserAvatar path={senderAvatar} name={senderName} className="size-8" /> : null}
 
-      <div
-        className={cn(
-          "group max-w-[85%] rounded-2xl px-3 py-2 shadow-bubble sm:max-w-[70%]",
-          isOwn
-            ? "rounded-br-sm bg-bubble-own text-bubble-own-foreground"
-            : "rounded-bl-sm border border-border bg-bubble-other text-bubble-other-foreground",
-        )}
-      >
-        {showSender && !isOwn ? (
-          <p className="mb-1 text-xs font-semibold text-primary">{senderName}</p>
-        ) : null}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="Opções da mensagem"
+            className={cn(
+              "group max-w-[85%] cursor-pointer rounded-2xl px-3 py-2 text-left shadow-bubble outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring sm:max-w-[70%]",
+              isOwn
+                ? "rounded-br-sm bg-bubble-own text-bubble-own-foreground"
+                : "rounded-bl-sm border border-border bg-bubble-other text-bubble-other-foreground",
+            )}
+          >
+            {showSender && !isOwn ? (
+              <p className="mb-1 text-xs font-semibold text-primary">{senderName}</p>
+            ) : null}
 
-        {message.kind !== "text" ? <MediaContent message={message} /> : null}
-        {message.body ? <p className="mt-1 whitespace-pre-wrap break-words text-sm">{message.body}</p> : null}
+            {message.kind !== "text" ? <MediaContent message={message} /> : null}
+            {message.body ? (
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm">{message.body}</p>
+            ) : null}
 
-        <div className="mt-1 flex items-center justify-end gap-1 text-[11px] opacity-70">
-          <span>{timeLabel(message.created_at)}</span>
-          {isOwn ? (
+            {grouped.size > 0 ? (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {[...grouped.entries()].map(([emoji, list]) => (
+                  <span
+                    key={emoji}
+                    className={cn(
+                      "rounded-full border border-border/60 bg-background/70 px-1.5 py-0.5 text-[11px] text-foreground",
+                      list.some((r) => r.user_id === myId) && "border-primary",
+                    )}
+                  >
+                    {emoji} {list.length}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="mt-1 flex items-center justify-end gap-1 text-[11px] opacity-70">
+              <span>{timeLabel(message.created_at)}</span>
+            </div>
+          </div>
+        </PopoverTrigger>
+
+        <PopoverContent align={isOwn ? "end" : "start"} className="w-auto p-2">
+          <div className="flex gap-1 pb-2">
+            {REACTIONS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                aria-label={`Reagir com ${emoji}`}
+                className="rounded-full px-1 text-lg transition-transform hover:scale-125"
+                onClick={() => {
+                  onReact(message.id, emoji);
+                  setOpen(false);
+                }}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-1 border-t border-border pt-2">
             <Button
               variant="ghost"
-              size="icon"
-              className="size-5 opacity-0 transition-opacity group-hover:opacity-100"
-              aria-label="Apagar mensagem"
-              onClick={() => onDelete(message.id)}
+              size="sm"
+              className="justify-start"
+              onClick={() => {
+                void copyContent();
+                setOpen(false);
+              }}
             >
-              <Trash2 className="size-3" />
+              <Copy className="mr-2 size-4" /> Copiar
             </Button>
-          ) : null}
-        </div>
-      </div>
+
+            {isOwn ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start"
+                  onClick={async () => {
+                    await copyContent();
+                    onDelete(message.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Scissors className="mr-2 size-4" /> Recortar
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start text-destructive"
+                  onClick={() => {
+                    onDelete(message.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Trash2 className="mr-2 size-4" /> Apagar
+                </Button>
+              </>
+            ) : null}
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }

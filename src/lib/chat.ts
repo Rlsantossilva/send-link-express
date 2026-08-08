@@ -38,6 +38,14 @@ export type Conversation = {
 export type ConversationWithPeople = Conversation & {
   members: Profile[];
   lastMessage: Message | null;
+  is_archived: boolean;
+};
+
+export type MessageReaction = {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
 };
 
 export type Contact = {
@@ -86,11 +94,12 @@ export async function listConversations(): Promise<ConversationWithPeople[]> {
 
   const { data: myMemberships, error: memberErr } = await supabase
     .from("conversation_members")
-    .select("conversation_id")
+    .select("conversation_id, is_archived")
     .eq("user_id", userId);
   if (memberErr) throw memberErr;
 
   const ids = (myMemberships ?? []).map((m) => m.conversation_id);
+  const archivedById = new Map((myMemberships ?? []).map((m) => [m.conversation_id, m.is_archived]));
   if (ids.length === 0) return [];
 
   const [convRes, membersRes, messagesRes] = await Promise.all([
@@ -144,7 +153,67 @@ export async function listConversations(): Promise<ConversationWithPeople[]> {
     ...conv,
     members: membersByConv.get(conv.id) ?? [],
     lastMessage: lastByConv.get(conv.id) ?? null,
+    is_archived: archivedById.get(conv.id) ?? false,
   }));
+}
+
+export async function setConversationArchived(conversationId: string, archived: boolean) {
+  const userId = await requireUserId();
+  const { error } = await supabase
+    .from("conversation_members")
+    .update({ is_archived: archived })
+    .eq("conversation_id", conversationId)
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
+export async function leaveConversation(conversationId: string) {
+  const userId = await requireUserId();
+  const { error } = await supabase
+    .from("conversation_members")
+    .delete()
+    .eq("conversation_id", conversationId)
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
+export async function listReactions(conversationId: string): Promise<MessageReaction[]> {
+  const { data: msgs, error: msgErr } = await supabase
+    .from("messages")
+    .select("id")
+    .eq("conversation_id", conversationId);
+  if (msgErr) throw msgErr;
+  const ids = (msgs ?? []).map((m) => m.id);
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase
+    .from("message_reactions")
+    .select("id, message_id, user_id, emoji")
+    .in("message_id", ids);
+  if (error) throw error;
+  return (data ?? []) as MessageReaction[];
+}
+
+export async function toggleReaction(messageId: string, emoji: string) {
+  const userId = await requireUserId();
+  const { data: existing, error: findError } = await supabase
+    .from("message_reactions")
+    .select("id")
+    .eq("message_id", messageId)
+    .eq("user_id", userId)
+    .eq("emoji", emoji)
+    .maybeSingle();
+  if (findError) throw findError;
+
+  if (existing) {
+    const { error } = await supabase.from("message_reactions").delete().eq("id", existing.id);
+    if (error) throw error;
+    return;
+  }
+
+  const { error } = await supabase
+    .from("message_reactions")
+    .insert({ message_id: messageId, user_id: userId, emoji });
+  if (error) throw error;
 }
 
 export async function listMessages(conversationId: string): Promise<Message[]> {
