@@ -1,20 +1,25 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowLeft, MessageSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   conversationAvatarPath,
   conversationTitle,
   deleteMessage,
+  leaveConversation,
   listConversations,
   listMessages,
+  listReactions,
   messagePreview,
   requireUserId,
   sendMediaMessage,
   sendTextMessage,
+  setConversationArchived,
+  toggleReaction,
+  type ConversationWithPeople,
 } from "@/lib/chat";
 import { AppShell } from "@/components/app-shell";
 import { UserAvatar } from "@/components/user-avatar";
@@ -22,6 +27,13 @@ import { Composer } from "@/components/chat/composer";
 import { MessageItem } from "@/components/chat/message-item";
 import { NewConversationDialog, NewGroupDialog } from "@/components/chat/new-conversation-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/conversas")({
