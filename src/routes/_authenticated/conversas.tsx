@@ -118,6 +118,50 @@ function ConversationsPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const reactMutation = useMutation({
+    mutationFn: ({ messageId, emoji }: { messageId: string; emoji: string }) =>
+      toggleReaction(messageId, emoji),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["reactions", activeId] }),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: ({ id, archived }: { id: string; archived: boolean }) =>
+      setConversationArchived(id, archived),
+    onSuccess: (_data, variables) => {
+      setMenuConversation(null);
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      toast.success(variables.archived ? "Conversa arquivada" : "Conversa desarquivada");
+      if (variables.id === activeId) void navigate({ to: "/conversas", search: {} });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const deleteConversation = useMutation({
+    mutationFn: leaveConversation,
+    onSuccess: (_data, id) => {
+      setMenuConversation(null);
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      toast.success("Conversa excluída");
+      if (id === activeId) void navigate({ to: "/conversas", search: {} });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  function startPress(conversation: ConversationWithPeople) {
+    longPressed.current = false;
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = setTimeout(() => {
+      longPressed.current = true;
+      setMenuConversation(conversation);
+    }, 2000);
+  }
+
+  function endPress() {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  }
+
   function openConversation(id: string) {
     void navigate({ to: "/conversas", search: { c: id } });
   }
@@ -132,27 +176,62 @@ function ConversationsPage() {
           )}
         >
           <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-            <h1 className="font-display text-lg font-bold">Conversas</h1>
+            <h1 className="font-display text-lg font-bold">
+              {showArchived ? "Arquivadas" : "Conversas"}
+            </h1>
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={showArchived ? "Ver conversas" : "Ver arquivadas"}
+                onClick={() => setShowArchived((value) => !value)}
+              >
+                {showArchived ? <ArchiveRestore className="size-4" /> : <Archive className="size-4" />}
+              </Button>
               <NewGroupDialog onOpened={openConversation} />
               <NewConversationDialog onOpened={openConversation} />
             </div>
           </header>
+
+          {!showArchived && archivedCount > 0 ? (
+            <button
+              onClick={() => setShowArchived(true)}
+              className="border-b border-border/60 px-4 py-2 text-left text-xs text-muted-foreground hover:bg-muted"
+            >
+              {archivedCount} conversa(s) arquivada(s)
+            </button>
+          ) : null}
 
           <div className="flex-1 overflow-y-auto">
             {isLoading ? (
               <p className="p-4 text-sm text-muted-foreground">Carregando…</p>
             ) : conversations.length === 0 ? (
               <p className="p-4 text-sm text-muted-foreground">
-                Nenhuma conversa ainda. Toque em “Nova” para começar.
+                {showArchived
+                  ? "Nenhuma conversa arquivada."
+                  : "Nenhuma conversa ainda. Toque em “Nova” para começar."}
               </p>
             ) : (
               conversations.map((conversation) => (
                 <button
                   key={conversation.id}
-                  onClick={() => openConversation(conversation.id)}
+                  onClick={() => {
+                    if (longPressed.current) {
+                      longPressed.current = false;
+                      return;
+                    }
+                    openConversation(conversation.id);
+                  }}
+                  onPointerDown={() => startPress(conversation)}
+                  onPointerUp={endPress}
+                  onPointerLeave={endPress}
+                  onPointerCancel={endPress}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    setMenuConversation(conversation);
+                  }}
                   className={cn(
-                    "flex w-full items-center gap-3 border-b border-border/60 px-4 py-3 text-left transition-colors hover:bg-muted",
+                    "flex w-full select-none items-center gap-3 border-b border-border/60 px-4 py-3 text-left transition-colors hover:bg-muted",
                     conversation.id === activeId && "bg-muted",
                   )}
                 >
@@ -178,6 +257,53 @@ function ConversationsPage() {
             )}
           </div>
         </section>
+
+        <Dialog
+          open={Boolean(menuConversation)}
+          onOpenChange={(open) => !open && setMenuConversation(null)}
+        >
+          <DialogContent className="max-w-xs">
+            <DialogHeader>
+              <DialogTitle>
+                {menuConversation ? conversationTitle(menuConversation, myId ?? "") : ""}
+              </DialogTitle>
+              <DialogDescription>O que você quer fazer com esta conversa?</DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="secondary"
+                className="justify-start"
+                disabled={archiveMutation.isPending}
+                onClick={() =>
+                  menuConversation &&
+                  archiveMutation.mutate({
+                    id: menuConversation.id,
+                    archived: !menuConversation.is_archived,
+                  })
+                }
+              >
+                {menuConversation?.is_archived ? (
+                  <>
+                    <ArchiveRestore className="mr-2 size-4" /> Desarquivar conversa
+                  </>
+                ) : (
+                  <>
+                    <Archive className="mr-2 size-4" /> Arquivar conversa
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="destructive"
+                className="justify-start"
+                disabled={deleteConversation.isPending}
+                onClick={() => menuConversation && deleteConversation.mutate(menuConversation.id)}
+              >
+                <Trash2 className="mr-2 size-4" /> Excluir conversa
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
 
         <section className={cn("flex min-w-0 flex-1 flex-col", activeId ? "flex" : "hidden md:flex")}>
           {active ? (
