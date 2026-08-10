@@ -329,7 +329,7 @@ function ConversationsPage() {
                       }
                     />
                     {conversation.unreadCount > 0 ? (
-                      <span className="absolute -right-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full rounded-bl-sm bg-destructive px-1.5 text-[10px] font-bold leading-none text-destructive-foreground shadow-md ring-2 ring-background">
+                      <span className="absolute -right-2 -top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full rounded-bl-[3px] bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground shadow-lg ring-1 ring-background">
                         {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}
                       </span>
                     ) : null}
