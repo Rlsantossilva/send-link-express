@@ -60,6 +60,7 @@ export function MessageItem({
   showSender,
   reactions,
   myId,
+  nameById,
   onDelete,
   onReact,
 }: {
@@ -70,16 +71,23 @@ export function MessageItem({
   showSender: boolean;
   reactions: MessageReaction[];
   myId: string;
+  nameById?: Record<string, string>;
   onDelete: (id: string) => void;
   onReact: (messageId: string, emoji: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [openChip, setOpenChip] = useState<string | null>(null);
 
   const grouped = new Map<string, MessageReaction[]>();
   for (const reaction of reactions) {
     const list = grouped.get(reaction.emoji) ?? [];
     list.push(reaction);
     grouped.set(reaction.emoji, list);
+  }
+
+  function reactorNames(list: MessageReaction[]) {
+    return list.map((r) => (r.user_id === myId ? "Você" : nameById?.[r.user_id] ?? "Alguém"));
   }
 
   async function copyContent() {
@@ -101,111 +109,159 @@ export function MessageItem({
     <div className={cn("flex items-end gap-2", isOwn ? "justify-end" : "justify-start")}>
       {!isOwn ? <UserAvatar path={senderAvatar} name={senderName} className="size-8" /> : null}
 
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <div
-            role="button"
-            tabIndex={0}
-            aria-label="Opções da mensagem"
-            className={cn(
-              "group max-w-[85%] cursor-pointer rounded-2xl px-3 py-2 text-left shadow-bubble outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring sm:max-w-[70%]",
-              isOwn
-                ? "rounded-br-sm bg-bubble-own text-bubble-own-foreground"
-                : "rounded-bl-sm border border-border bg-bubble-other text-bubble-other-foreground",
-            )}
-          >
-            {showSender && !isOwn ? (
-              <p className="mb-1 text-xs font-semibold text-primary">{senderName}</p>
-            ) : null}
+      <div className={cn("flex max-w-[85%] flex-col sm:max-w-[70%]", isOwn ? "items-end" : "items-start")}>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label="Opções da mensagem"
+              className={cn(
+                "group w-fit max-w-full cursor-pointer rounded-2xl px-3 py-2 text-left shadow-bubble outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
+                isOwn
+                  ? "rounded-br-sm bg-bubble-own text-bubble-own-foreground"
+                  : "rounded-bl-sm border border-border bg-bubble-other text-bubble-other-foreground",
+              )}
+            >
+              {showSender && !isOwn ? (
+                <p className="mb-1 text-xs font-semibold text-primary">{senderName}</p>
+              ) : null}
 
-            {message.kind !== "text" ? <MediaContent message={message} /> : null}
-            {message.body ? (
-              <p className="mt-1 whitespace-pre-wrap break-words text-sm">{message.body}</p>
-            ) : null}
+              {message.kind !== "text" ? <MediaContent message={message} /> : null}
+              {message.body ? (
+                <p className="mt-1 whitespace-pre-wrap break-words text-sm">{message.body}</p>
+              ) : null}
 
-            {grouped.size > 0 ? (
-              <div className="mt-1 flex flex-wrap gap-1">
-                {[...grouped.entries()].map(([emoji, list]) => (
-                  <span
-                    key={emoji}
-                    className={cn(
-                      "rounded-full border border-border/60 bg-background/70 px-1.5 py-0.5 text-[11px] text-foreground",
-                      list.some((r) => r.user_id === myId) && "border-primary",
-                    )}
-                  >
-                    {emoji} {list.length}
-                  </span>
-                ))}
+              <div className="mt-1 flex items-center justify-end gap-1 text-[11px] opacity-70">
+                <span>{timeLabel(message.created_at)}</span>
               </div>
-            ) : null}
-
-            <div className="mt-1 flex items-center justify-end gap-1 text-[11px] opacity-70">
-              <span>{timeLabel(message.created_at)}</span>
             </div>
-          </div>
-        </PopoverTrigger>
+          </PopoverTrigger>
 
-        <PopoverContent align={isOwn ? "end" : "start"} className="w-auto p-2">
-          <div className="flex gap-1 pb-2">
-            {REACTIONS.map((emoji) => (
-              <button
-                key={emoji}
-                type="button"
-                aria-label={`Reagir com ${emoji}`}
-                className="rounded-full px-1 text-lg transition-transform hover:scale-125"
+          <PopoverContent align={isOwn ? "end" : "start"} className="w-auto p-2">
+            <div className="flex gap-1 pb-2">
+              {REACTIONS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  aria-label={`Reagir com ${emoji}`}
+                  className="rounded-full px-1 text-lg transition-transform hover:scale-125"
+                  onClick={() => {
+                    onReact(message.id, emoji);
+                    setOpen(false);
+                  }}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-1 border-t border-border pt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start"
                 onClick={() => {
-                  onReact(message.id, emoji);
+                  void copyContent();
                   setOpen(false);
                 }}
               >
-                {emoji}
-              </button>
-            ))}
-          </div>
+                <Copy className="mr-2 size-4" /> Copiar
+              </Button>
 
-          <div className="flex flex-col gap-1 border-t border-border pt-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="justify-start"
-              onClick={() => {
-                void copyContent();
-                setOpen(false);
-              }}
+              {isOwn ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start"
+                    onClick={async () => {
+                      await copyContent();
+                      onDelete(message.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <Scissors className="mr-2 size-4" /> Recortar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start text-destructive"
+                    onClick={() => {
+                      onDelete(message.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <Trash2 className="mr-2 size-4" /> Apagar
+                  </Button>
+                </>
+              ) : null}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <div className="mt-1 flex flex-wrap items-center justify-end gap-1">
+          {[...grouped.entries()].map(([emoji, list]) => (
+            <Popover
+              key={emoji}
+              open={openChip === emoji}
+              onOpenChange={(value) => setOpenChip(value ? emoji : null)}
             >
-              <Copy className="mr-2 size-4" /> Copiar
-            </Button>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`Ver quem reagiu com ${emoji}`}
+                  className={cn(
+                    "rounded-full border border-border/60 bg-background/70 px-1.5 py-0.5 text-[11px] text-foreground transition-colors hover:bg-muted",
+                    list.some((r) => r.user_id === myId) && "border-primary",
+                  )}
+                >
+                  {emoji} {list.length}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align={isOwn ? "end" : "start"} className="w-auto max-w-56 p-2">
+                <p className="mb-1 text-xs font-semibold">{emoji} reagiram</p>
+                <ul className="space-y-0.5 text-xs text-muted-foreground">
+                  {reactorNames(list).map((name, index) => (
+                    <li key={`${name}-${index}`}>{name}</li>
+                  ))}
+                </ul>
+              </PopoverContent>
+            </Popover>
+          ))}
 
-            {isOwn ? (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="justify-start"
-                  onClick={async () => {
-                    await copyContent();
-                    onDelete(message.id);
-                    setOpen(false);
-                  }}
-                >
-                  <Scissors className="mr-2 size-4" /> Recortar
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="justify-start text-destructive"
-                  onClick={() => {
-                    onDelete(message.id);
-                    setOpen(false);
-                  }}
-                >
-                  <Trash2 className="mr-2 size-4" /> Apagar
-                </Button>
-              </>
-            ) : null}
-          </div>
-        </PopoverContent>
-      </Popover>
+          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label="Reagir à mensagem"
+                className="rounded-full border border-border/60 bg-background/70 p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <SmilePlus className="size-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align={isOwn ? "end" : "start"} className="w-auto p-2">
+              <div className="flex gap-1">
+                {REACTIONS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    aria-label={`Reagir com ${emoji}`}
+                    className="rounded-full px-1 text-lg transition-transform hover:scale-125"
+                    onClick={() => {
+                      onReact(message.id, emoji);
+                      setPickerOpen(false);
+                    }}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
     </div>
   );
 }
+
