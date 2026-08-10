@@ -43,6 +43,10 @@
   --color-bubble-own-foreground: var(--bubble-own-foreground);
   --color-bubble-other: var(--bubble-other);
   --color-bubble-other-foreground: var(--bubble-other-foreground);
+  --color-online: var(--online);
+  --color-tick-sent: var(--tick-sent);
+  --color-tick-read: var(--tick-read);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
