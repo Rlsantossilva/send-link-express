@@ -39,6 +39,8 @@ export type ConversationWithPeople = Conversation & {
   members: Profile[];
   lastMessage: Message | null;
   is_archived: boolean;
+  lastReaction: { emoji: string; user_id: string } | null;
+  unreadCount: number;
 };
 
 export type MessageReaction = {
