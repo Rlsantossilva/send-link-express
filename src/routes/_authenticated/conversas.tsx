@@ -358,6 +358,10 @@ function ConversationsPage() {
                       showSender={active.is_group}
                       reactions={reactions.filter((r) => r.message_id === message.id)}
                       myId={myId ?? ""}
+                      nameById={Object.fromEntries(
+                        active.members.map((member) => [member.id, member.display_name]),
+                      )}
+
                       onReact={(messageId, emoji) => reactMutation.mutate({ messageId, emoji })}
                       onDelete={(id) => removeMessage.mutate(id)}
                     />
