@@ -431,7 +431,9 @@ export async function sendTextMessage(conversationId: string, body: string) {
     body,
   });
   if (error) throw error;
+  fireNotification({ conversationId, kind: "message", preview: body });
 }
+
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 
