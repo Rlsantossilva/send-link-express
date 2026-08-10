@@ -146,9 +146,48 @@ export async function listConversations(): Promise<ConversationWithPeople[]> {
     membersByConv.set(row.conversation_id, list);
   }
 
+  const allMessages = (messagesRes.data ?? []) as Message[];
   const lastByConv = new Map<string, Message>();
-  for (const msg of (messagesRes.data ?? []) as Message[]) {
+  for (const msg of allMessages) {
     if (!lastByConv.has(msg.conversation_id)) lastByConv.set(msg.conversation_id, msg);
+  }
+
+  const messageIds = allMessages.map((msg) => msg.id);
+  const convByMessage = new Map(allMessages.map((msg) => [msg.id, msg.conversation_id]));
+
+  const [reactionsRes, receiptsRes] = await Promise.all([
+    messageIds.length
+      ? supabase
+          .from("message_reactions")
+          .select("message_id, user_id, emoji, created_at")
+          .in("message_id", messageIds)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+    messageIds.length
+      ? supabase
+          .from("message_receipts")
+          .select("message_id, read_at")
+          .eq("user_id", userId)
+          .in("message_id", messageIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (reactionsRes.error) throw reactionsRes.error;
+  if (receiptsRes.error) throw receiptsRes.error;
+
+  const lastReactionByConv = new Map<string, { emoji: string; user_id: string }>();
+  for (const reaction of reactionsRes.data ?? []) {
+    const convId = convByMessage.get(reaction.message_id);
+    if (!convId || lastReactionByConv.has(convId)) continue;
+    lastReactionByConv.set(convId, { emoji: reaction.emoji, user_id: reaction.user_id });
+  }
+
+  const readIds = new Set(
+    (receiptsRes.data ?? []).filter((row) => row.read_at).map((row) => row.message_id),
+  );
+  const unreadByConv = new Map<string, number>();
+  for (const msg of allMessages) {
+    if (msg.sender_id === userId || readIds.has(msg.id)) continue;
+    unreadByConv.set(msg.conversation_id, (unreadByConv.get(msg.conversation_id) ?? 0) + 1);
   }
 
   return ((convRes.data ?? []) as Conversation[]).map((conv) => ({
@@ -156,6 +195,8 @@ export async function listConversations(): Promise<ConversationWithPeople[]> {
     members: membersByConv.get(conv.id) ?? [],
     lastMessage: lastByConv.get(conv.id) ?? null,
     is_archived: archivedById.get(conv.id) ?? false,
+    lastReaction: lastReactionByConv.get(conv.id) ?? null,
+    unreadCount: unreadByConv.get(conv.id) ?? 0,
   }));
 }
 
