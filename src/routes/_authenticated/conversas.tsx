@@ -208,6 +208,23 @@ function ConversationsPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const blockMutation = useMutation({
+    mutationFn: async (conversation: ConversationWithPeople) => {
+      const other = conversation.members.find((member) => member.id !== myId);
+      if (!other) throw new Error("Contato não encontrado");
+      await blockUser(other.id);
+    },
+    onSuccess: (_data, conversation) => {
+      setMenuConversation(null);
+      void queryClient.invalidateQueries({ queryKey: ["blocked"] });
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      toast.success("Contato bloqueado");
+      if (conversation.id === activeId) void navigate({ to: "/conversas", search: {} });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+
   function startPress(conversation: ConversationWithPeople) {
     longPressed.current = false;
     if (pressTimer.current) clearTimeout(pressTimer.current);
