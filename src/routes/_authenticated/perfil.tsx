@@ -168,7 +168,10 @@ function ProfilePage() {
             </Button>
           </CardContent>
         </Card>
+
+        <NotificationSettingsCard />
       </div>
+
     </AppShell>
   );
 }
