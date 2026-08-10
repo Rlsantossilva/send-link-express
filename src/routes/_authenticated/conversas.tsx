@@ -160,8 +160,20 @@ function ConversationsPage() {
         void queryClient.invalidateQueries({ queryKey: ["receipts"] });
         void queryClient.invalidateQueries({ queryKey: ["conversations"] });
       })
-
-
+      .on("postgres_changes", { event: "*", schema: "public", table: "conversation_members" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        void queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "contacts" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "blocked_users" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["blocked"] });
+        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      })
       .subscribe();
 
     return () => {
