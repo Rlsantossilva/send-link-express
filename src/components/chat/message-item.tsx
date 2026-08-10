@@ -52,6 +52,22 @@ function MediaContent({ message }: { message: Message }) {
   );
 }
 
+function StatusTicks({ status }: { status: "sent" | "delivered" | "read" }) {
+  const label =
+    status === "read" ? "Visualizada" : status === "delivered" ? "Recebida" : "Enviada";
+  return (
+    <span aria-label={label} title={label} className="inline-flex items-center">
+      {status === "read" ? (
+        <CheckCheck className="size-3.5 text-tick-read" />
+      ) : status === "delivered" ? (
+        <CheckCheck className="size-3.5 text-tick-sent" />
+      ) : (
+        <Check className="size-3.5 text-tick-sent" />
+      )}
+    </span>
+  );
+}
+
 export function MessageItem({
   message,
   isOwn,
@@ -61,6 +77,7 @@ export function MessageItem({
   reactions,
   myId,
   nameById,
+  status,
   onDelete,
   onReact,
 }: {
@@ -72,12 +89,14 @@ export function MessageItem({
   reactions: MessageReaction[];
   myId: string;
   nameById?: Record<string, string>;
+  status?: "sent" | "delivered" | "read" | undefined;
   onDelete: (id: string) => void;
   onReact: (messageId: string, emoji: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [openChip, setOpenChip] = useState<string | null>(null);
+
 
   const grouped = new Map<string, MessageReaction[]>();
   for (const reaction of reactions) {
