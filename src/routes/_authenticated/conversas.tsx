@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Archive, ArchiveRestore, ArrowLeft, Ban, MessageSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+
 import {
   blockUser,
   conversationAvatarPath,
@@ -142,32 +142,8 @@ function ConversationsPage() {
   }
 
 
-  useEffect(() => {
-    const channel = supabase
-      .channel("chat-stream")
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["messages"] });
-        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["reactions"] });
-        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "message_receipts" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["receipts"] });
-        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      })
+  // Sincronização em tempo real é feita globalmente em useRealtimeSync (AppShell).
 
-
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });

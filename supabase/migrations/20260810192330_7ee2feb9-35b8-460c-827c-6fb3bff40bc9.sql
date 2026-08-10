@@ -1,0 +1,9 @@
+ALTER TABLE public.profiles REPLICA IDENTITY FULL;
+ALTER TABLE public.blocked_users REPLICA IDENTITY FULL;
+ALTER TABLE public.messages REPLICA IDENTITY FULL;
+ALTER TABLE public.message_receipts REPLICA IDENTITY FULL;
+ALTER TABLE public.message_reactions REPLICA IDENTITY FULL;
+ALTER TABLE public.conversations REPLICA IDENTITY FULL;
+ALTER TABLE public.conversation_members REPLICA IDENTITY FULL;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.blocked_users;
