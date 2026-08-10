@@ -142,6 +142,11 @@ export function MessageItem({
                   : "rounded-bl-sm border border-border bg-bubble-other text-bubble-other-foreground",
               )}
             >
+              {isOwn ? (
+                <span className="mb-1 inline-block rounded-full bg-bubble-own-foreground/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                  Eu
+                </span>
+              ) : null}
               {showSender && !isOwn ? (
                 <p className="mb-1 text-xs font-semibold text-primary">{senderName}</p>
               ) : null}
@@ -153,6 +158,8 @@ export function MessageItem({
 
               <div className="mt-1 flex items-center justify-end gap-1 text-[11px] opacity-70">
                 <span>{timeLabel(message.created_at)}</span>
+                {isOwn && status ? <StatusTicks status={status} /> : null}
+
               </div>
             </div>
           </PopoverTrigger>
