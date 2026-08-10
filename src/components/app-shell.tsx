@@ -25,7 +25,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background md:flex-row">
+    <div className="flex min-h-dvh flex-col overflow-hidden bg-background md:h-dvh md:flex-row">
       <aside className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-sidebar px-4 py-3 md:w-60 md:flex-col md:items-stretch md:border-r md:border-b-0 md:px-4 md:py-6">
         <Link to="/conversas" className="flex items-center gap-2">
           <span className="grid size-9 place-items-center rounded-xl bg-brand-gradient text-lg font-bold text-primary-foreground">
@@ -64,7 +64,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Button>
       </aside>
 
-      <main className="min-h-0 flex-1">{children}</main>
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</main>
     </div>
   );
 }

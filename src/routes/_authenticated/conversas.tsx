@@ -171,7 +171,7 @@ function ConversationsPage() {
 
   return (
     <AppShell>
-      <div className="flex h-[calc(100vh-57px)] md:h-screen">
+      <div className="flex h-[calc(100dvh-57px)] min-h-0 md:h-dvh">
         <section
           className={cn(
             "flex w-full flex-col border-r border-border md:flex md:w-80",

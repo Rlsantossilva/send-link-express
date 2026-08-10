@@ -130,7 +130,7 @@ function AuthPage() {
   }
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
+    <div className="grid min-h-dvh lg:grid-cols-2">
       <div className="hidden flex-col justify-between bg-brand-gradient p-10 text-primary-foreground lg:flex">
         <Link to="/" className="font-display text-2xl font-bold">
           Zap Tri
