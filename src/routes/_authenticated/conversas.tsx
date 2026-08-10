@@ -315,7 +315,12 @@ function ConversationsPage() {
                   <UserAvatar
                     path={conversationAvatarPath(conversation, myId ?? "")}
                     name={conversationTitle(conversation, myId ?? "")}
+                    online={
+                      !conversation.is_group &&
+                      conversation.members.some((m) => m.id !== myId && onlineIds.has(m.id))
+                    }
                   />
+
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">
                       {conversationTitle(conversation, myId ?? "")}
