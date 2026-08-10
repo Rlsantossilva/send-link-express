@@ -265,7 +265,7 @@ export async function updateGroupInfo(conversationId: string, patch: { name?: st
 export async function uploadGroupAvatar(conversationId: string, file: File) {
   const userId = await requireUserId();
   const extension = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
-  const path = `groups/${conversationId}/${userId}-${crypto.randomUUID()}.${extension}`;
+  const path = `${userId}/groups/${conversationId}-${crypto.randomUUID()}.${extension}`;
   const { error } = await supabase.storage.from("avatars").upload(path, file, {
     contentType: file.type || "image/jpeg",
     upsert: false,
