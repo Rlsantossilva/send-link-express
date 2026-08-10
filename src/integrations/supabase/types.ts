@@ -268,6 +268,45 @@ export type Database = {
           },
         ]
       }
+      notification_settings: {
+        Row: {
+          created_at: string
+          custom_sound_name: string | null
+          custom_sound_path: string | null
+          message_sound: string
+          notify_reactions: boolean
+          push_enabled: boolean
+          reaction_sound: string
+          sound_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_sound_name?: string | null
+          custom_sound_path?: string | null
+          message_sound?: string
+          notify_reactions?: boolean
+          push_enabled?: boolean
+          reaction_sound?: string
+          sound_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_sound_name?: string | null
+          custom_sound_path?: string | null
+          message_sound?: string
+          notify_reactions?: boolean
+          push_enabled?: boolean
+          reaction_sound?: string
+          sound_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -307,6 +346,36 @@ export type Database = {
           phone?: string | null
           status_text?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
