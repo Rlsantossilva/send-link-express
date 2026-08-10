@@ -383,6 +383,16 @@ function ConversationsPage() {
                   </>
                 )}
               </Button>
+              {menuConversation && !menuConversation.is_group ? (
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  disabled={blockMutation.isPending}
+                  onClick={() => blockMutation.mutate(menuConversation)}
+                >
+                  <Ban className="mr-2 size-4 text-destructive" /> Bloquear contato
+                </Button>
+              ) : null}
               <Button
                 variant="destructive"
                 className="justify-start"
@@ -395,6 +405,13 @@ function ConversationsPage() {
           </DialogContent>
         </Dialog>
 
+        <GroupSettingsDialog
+          key={active?.id ?? "none"}
+          conversation={active?.is_group ? active : null}
+          myId={myId ?? ""}
+          open={groupSettingsOpen}
+          onOpenChange={setGroupSettingsOpen}
+        />
 
         <section className={cn("flex min-w-0 flex-1 flex-col", activeId ? "flex" : "hidden md:flex")}>
           {active ? (
@@ -409,20 +426,35 @@ function ConversationsPage() {
                 >
                   <ArrowLeft className="size-4" />
                 </Button>
-                <UserAvatar
-                  path={conversationAvatarPath(active, myId ?? "")}
-                  name={conversationTitle(active, myId ?? "")}
-                  className="size-9"
-                />
+                {active.is_group ? (
+                  <button
+                    type="button"
+                    aria-label="Configurações do grupo"
+                    className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => setGroupSettingsOpen(true)}
+                  >
+                    <UserAvatar path={active.avatar_url} name={active.name} className="size-9" />
+                  </button>
+                ) : (
+                  <UserAvatar
+                    path={conversationAvatarPath(active, myId ?? "")}
+                    name={conversationTitle(active, myId ?? "")}
+                    className="size-9"
+                    online={active.members.some((m) => m.id !== myId && onlineIds.has(m.id))}
+                  />
+                )}
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">{conversationTitle(active, myId ?? "")}</p>
                   <p className="truncate text-xs text-muted-foreground">
                     {active.is_group
-                      ? `${active.members.length} participantes`
-                      : active.members.find((m) => m.id !== myId)?.email || "Conversa individual"}
+                      ? `${active.members.length} participantes · toque na foto para configurar`
+                      : active.members.some((m) => m.id !== myId && onlineIds.has(m.id))
+                        ? "Online"
+                        : active.members.find((m) => m.id !== myId)?.email || "Conversa individual"}
                   </p>
                 </div>
               </header>
+
 
               <div className="flex-1 space-y-2 overflow-y-auto bg-chat-canvas p-4">
                 {messages.map((message) => {
