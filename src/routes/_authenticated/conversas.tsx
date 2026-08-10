@@ -185,7 +185,10 @@ function ConversationsPage() {
   const reactMutation = useMutation({
     mutationFn: ({ messageId, emoji }: { messageId: string; emoji: string }) =>
       toggleReaction(messageId, emoji),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["reactions", activeId] }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["reactions", activeId] });
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
     onError: (error: Error) => toast.error(error.message),
   });
 
