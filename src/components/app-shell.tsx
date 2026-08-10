@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile } from "@/lib/chat";
 import { useRealtimeSync } from "@/hooks/use-realtime-sync";
+import { useNotifications } from "@/hooks/use-notifications";
 import { Button } from "@/components/ui/button";
 
 const NAV = [
@@ -16,6 +17,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   useRealtimeSync();
+  useNotifications();
+
   const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: getMyProfile });
   const myName = profile?.display_name || profile?.email || "Você";
 
