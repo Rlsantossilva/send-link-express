@@ -43,6 +43,10 @@
   --color-bubble-own-foreground: var(--bubble-own-foreground);
   --color-bubble-other: var(--bubble-other);
   --color-bubble-other-foreground: var(--bubble-other-foreground);
+  --color-online: var(--online);
+  --color-tick-sent: var(--tick-sent);
+  --color-tick-read: var(--tick-read);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -95,6 +99,9 @@
   --bubble-own-foreground: oklch(0.99 0.005 260);
   --bubble-other: oklch(1 0 0);
   --bubble-other-foreground: oklch(0.22 0.03 265);
+  --online: oklch(0.72 0.19 145);
+  --tick-sent: oklch(0.62 0.01 265);
+  --tick-read: oklch(0.62 0.19 300);
 
   --gradient-brand: linear-gradient(
     135deg,
@@ -145,6 +152,9 @@
   --bubble-own-foreground: oklch(0.98 0.01 260);
   --bubble-other: oklch(0.28 0.035 265);
   --bubble-other-foreground: oklch(0.97 0.01 95);
+  --online: oklch(0.75 0.19 145);
+  --tick-sent: oklch(0.72 0.01 265);
+  --tick-read: oklch(0.72 0.19 300);
   --sidebar: oklch(0.23 0.03 265);
   --sidebar-foreground: oklch(0.97 0.01 95);
   --sidebar-primary: oklch(0.65 0.17 258);

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Download, Scissors, SmilePlus, Trash2 } from "lucide-react";
+import { Check, CheckCheck, Copy, Download, Scissors, SmilePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { createSignedUrl, type Message, type MessageReaction } from "@/lib/chat";
 import { UserAvatar } from "@/components/user-avatar";
@@ -52,6 +52,22 @@ function MediaContent({ message }: { message: Message }) {
   );
 }
 
+function StatusTicks({ status }: { status: "sent" | "delivered" | "read" }) {
+  const label =
+    status === "read" ? "Visualizada" : status === "delivered" ? "Recebida" : "Enviada";
+  return (
+    <span aria-label={label} title={label} className="inline-flex items-center">
+      {status === "read" ? (
+        <CheckCheck className="size-3.5 text-tick-read" />
+      ) : status === "delivered" ? (
+        <CheckCheck className="size-3.5 text-tick-sent" />
+      ) : (
+        <Check className="size-3.5 text-tick-sent" />
+      )}
+    </span>
+  );
+}
+
 export function MessageItem({
   message,
   isOwn,
@@ -61,6 +77,7 @@ export function MessageItem({
   reactions,
   myId,
   nameById,
+  status,
   onDelete,
   onReact,
 }: {
@@ -72,12 +89,14 @@ export function MessageItem({
   reactions: MessageReaction[];
   myId: string;
   nameById?: Record<string, string>;
+  status?: "sent" | "delivered" | "read" | undefined;
   onDelete: (id: string) => void;
   onReact: (messageId: string, emoji: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [openChip, setOpenChip] = useState<string | null>(null);
+
 
   const grouped = new Map<string, MessageReaction[]>();
   for (const reaction of reactions) {
@@ -123,6 +142,11 @@ export function MessageItem({
                   : "rounded-bl-sm border border-border bg-bubble-other text-bubble-other-foreground",
               )}
             >
+              {isOwn ? (
+                <span className="mb-1 inline-block rounded-full bg-bubble-own-foreground/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                  Eu
+                </span>
+              ) : null}
               {showSender && !isOwn ? (
                 <p className="mb-1 text-xs font-semibold text-primary">{senderName}</p>
               ) : null}
@@ -134,6 +158,8 @@ export function MessageItem({
 
               <div className="mt-1 flex items-center justify-end gap-1 text-[11px] opacity-70">
                 <span>{timeLabel(message.created_at)}</span>
+                {isOwn && status ? <StatusTicks status={status} /> : null}
+
               </div>
             </div>
           </PopoverTrigger>

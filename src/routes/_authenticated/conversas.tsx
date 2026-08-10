@@ -2,17 +2,22 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { Archive, ArchiveRestore, ArrowLeft, MessageSquare, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowLeft, Ban, MessageSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  blockUser,
   conversationAvatarPath,
   conversationTitle,
   deleteMessage,
   leaveConversation,
+  listBlockedIds,
   listConversations,
   listMessages,
   listReactions,
+  listReceipts,
+  markConversationRead,
+  markMessagesDelivered,
   messagePreview,
   requireUserId,
   sendMediaMessage,
@@ -21,10 +26,12 @@ import {
   toggleReaction,
   type ConversationWithPeople,
 } from "@/lib/chat";
+import { usePresence } from "@/hooks/use-presence";
 import { AppShell } from "@/components/app-shell";
 import { UserAvatar } from "@/components/user-avatar";
 import { Composer } from "@/components/chat/composer";
 import { MessageItem } from "@/components/chat/message-item";
+import { GroupSettingsDialog } from "@/components/chat/group-settings-dialog";
 import { NewConversationDialog, NewGroupDialog } from "@/components/chat/new-conversation-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +42,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/_authenticated/conversas")({
   head: () => ({
@@ -58,22 +66,35 @@ function ConversationsPage() {
   const longPressed = useRef(false);
   const [menuConversation, setMenuConversation] = useState<ConversationWithPeople | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
 
   const { data: myId } = useQuery({ queryKey: ["my-id"], queryFn: requireUserId });
+  const onlineIds = usePresence(myId);
   const { data: allConversations = [], isLoading } = useQuery({
     queryKey: ["conversations"],
     queryFn: listConversations,
   });
+  const { data: blockedIds = [] } = useQuery({ queryKey: ["blocked"], queryFn: listBlockedIds });
+
+  const visibleConversations = useMemo(
+    () =>
+      allConversations.filter(
+        (conversation) =>
+          conversation.is_group ||
+          !conversation.members.some((member) => member.id !== myId && blockedIds.includes(member.id)),
+      ),
+    [allConversations, blockedIds, myId],
+  );
 
   const conversations = useMemo(
-    () => allConversations.filter((conversation) => conversation.is_archived === showArchived),
-    [allConversations, showArchived],
+    () => visibleConversations.filter((conversation) => conversation.is_archived === showArchived),
+    [visibleConversations, showArchived],
   );
-  const archivedCount = allConversations.filter((conversation) => conversation.is_archived).length;
+  const archivedCount = visibleConversations.filter((conversation) => conversation.is_archived).length;
 
   const active = useMemo(
-    () => allConversations.find((conversation) => conversation.id === activeId) ?? null,
-    [allConversations, activeId],
+    () => visibleConversations.find((conversation) => conversation.id === activeId) ?? null,
+    [visibleConversations, activeId],
   );
 
   const { data: messages = [] } = useQuery({
@@ -88,6 +109,38 @@ function ConversationsPage() {
     enabled: Boolean(activeId),
   });
 
+  const { data: receipts = [] } = useQuery({
+    queryKey: ["receipts", activeId],
+    queryFn: () => listReceipts(activeId as string),
+    enabled: Boolean(activeId),
+  });
+
+  useEffect(() => {
+    if (!activeId || !myId || messages.length === 0) return;
+    void markConversationRead(activeId).then(() =>
+      queryClient.invalidateQueries({ queryKey: ["receipts", activeId] }),
+    );
+  }, [activeId, myId, messages.length, queryClient]);
+
+  useEffect(() => {
+    if (!myId) return;
+    const pending = allConversations
+      .filter((conversation) => conversation.id !== activeId)
+      .map((conversation) => conversation.lastMessage)
+      .filter((message) => message && message.sender_id !== myId)
+      .map((message) => message!.id);
+    if (pending.length > 0) void markMessagesDelivered(pending);
+  }, [allConversations, activeId, myId]);
+
+  function ownStatus(messageId: string): "sent" | "delivered" | "read" {
+    const others = (active?.members ?? []).filter((member) => member.id !== myId).length;
+    const list = receipts.filter((receipt) => receipt.message_id === messageId);
+    if (others > 0 && list.filter((receipt) => receipt.read_at).length >= others) return "read";
+    if (list.length > 0) return "delivered";
+    return "sent";
+  }
+
+
   useEffect(() => {
     const channel = supabase
       .channel("chat-stream")
@@ -101,6 +154,10 @@ function ConversationsPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions" }, () => {
         void queryClient.invalidateQueries({ queryKey: ["reactions"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "message_receipts" }, () => {
+        void queryClient.invalidateQueries({ queryKey: ["receipts"] });
+      })
+
       .subscribe();
 
     return () => {
@@ -150,6 +207,23 @@ function ConversationsPage() {
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const blockMutation = useMutation({
+    mutationFn: async (conversation: ConversationWithPeople) => {
+      const other = conversation.members.find((member) => member.id !== myId);
+      if (!other) throw new Error("Contato não encontrado");
+      await blockUser(other.id);
+    },
+    onSuccess: (_data, conversation) => {
+      setMenuConversation(null);
+      void queryClient.invalidateQueries({ queryKey: ["blocked"] });
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      toast.success("Contato bloqueado");
+      if (conversation.id === activeId) void navigate({ to: "/conversas", search: {} });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
 
   function startPress(conversation: ConversationWithPeople) {
     longPressed.current = false;
@@ -241,7 +315,12 @@ function ConversationsPage() {
                   <UserAvatar
                     path={conversationAvatarPath(conversation, myId ?? "")}
                     name={conversationTitle(conversation, myId ?? "")}
+                    online={
+                      !conversation.is_group &&
+                      conversation.members.some((m) => m.id !== myId && onlineIds.has(m.id))
+                    }
                   />
+
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">
                       {conversationTitle(conversation, myId ?? "")}
@@ -304,6 +383,16 @@ function ConversationsPage() {
                   </>
                 )}
               </Button>
+              {menuConversation && !menuConversation.is_group ? (
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  disabled={blockMutation.isPending}
+                  onClick={() => blockMutation.mutate(menuConversation)}
+                >
+                  <Ban className="mr-2 size-4 text-destructive" /> Bloquear contato
+                </Button>
+              ) : null}
               <Button
                 variant="destructive"
                 className="justify-start"
@@ -316,6 +405,13 @@ function ConversationsPage() {
           </DialogContent>
         </Dialog>
 
+        <GroupSettingsDialog
+          key={active?.id ?? "none"}
+          conversation={active?.is_group ? active : null}
+          myId={myId ?? ""}
+          open={groupSettingsOpen}
+          onOpenChange={setGroupSettingsOpen}
+        />
 
         <section className={cn("flex min-w-0 flex-1 flex-col", activeId ? "flex" : "hidden md:flex")}>
           {active ? (
@@ -330,20 +426,35 @@ function ConversationsPage() {
                 >
                   <ArrowLeft className="size-4" />
                 </Button>
-                <UserAvatar
-                  path={conversationAvatarPath(active, myId ?? "")}
-                  name={conversationTitle(active, myId ?? "")}
-                  className="size-9"
-                />
+                {active.is_group ? (
+                  <button
+                    type="button"
+                    aria-label="Configurações do grupo"
+                    className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => setGroupSettingsOpen(true)}
+                  >
+                    <UserAvatar path={active.avatar_url} name={active.name} className="size-9" />
+                  </button>
+                ) : (
+                  <UserAvatar
+                    path={conversationAvatarPath(active, myId ?? "")}
+                    name={conversationTitle(active, myId ?? "")}
+                    className="size-9"
+                    online={active.members.some((m) => m.id !== myId && onlineIds.has(m.id))}
+                  />
+                )}
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">{conversationTitle(active, myId ?? "")}</p>
                   <p className="truncate text-xs text-muted-foreground">
                     {active.is_group
-                      ? `${active.members.length} participantes`
-                      : active.members.find((m) => m.id !== myId)?.email || "Conversa individual"}
+                      ? `${active.members.length} participantes · toque na foto para configurar`
+                      : active.members.some((m) => m.id !== myId && onlineIds.has(m.id))
+                        ? "Online"
+                        : active.members.find((m) => m.id !== myId)?.email || "Conversa individual"}
                   </p>
                 </div>
               </header>
+
 
               <div className="flex-1 space-y-2 overflow-y-auto bg-chat-canvas p-4">
                 {messages.map((message) => {
@@ -356,6 +467,8 @@ function ConversationsPage() {
                       senderName={sender?.display_name ?? "Alguém"}
                       senderAvatar={sender?.avatar_url}
                       showSender={active.is_group}
+                      status={message.sender_id === myId ? ownStatus(message.id) : undefined}
+
                       reactions={reactions.filter((r) => r.message_id === message.id)}
                       myId={myId ?? ""}
                       nameById={Object.fromEntries(

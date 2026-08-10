@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS conversation_members_unique ON public.conversation_members (conversation_id, user_id);
