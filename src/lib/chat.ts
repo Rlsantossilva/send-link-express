@@ -395,7 +395,22 @@ export async function toggleReaction(messageId: string, emoji: string) {
     .from("message_reactions")
     .insert({ message_id: messageId, user_id: userId, emoji });
   if (error) throw error;
+
+  const { data: message } = await supabase
+    .from("messages")
+    .select("conversation_id, sender_id")
+    .eq("id", messageId)
+    .maybeSingle();
+  if (message && message.sender_id !== userId) {
+    fireNotification({
+      conversationId: message.conversation_id,
+      kind: "reaction",
+      emoji,
+      targetUserId: message.sender_id,
+    });
+  }
 }
+
 
 export async function listMessages(conversationId: string): Promise<Message[]> {
   const { data, error } = await supabase
