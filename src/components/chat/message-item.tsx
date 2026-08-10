@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Download, Scissors, Trash2 } from "lucide-react";
+import { Copy, Download, Scissors, SmilePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { createSignedUrl, type Message, type MessageReaction } from "@/lib/chat";
 import { UserAvatar } from "@/components/user-avatar";
@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 
 const REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏", "🔥", "🎉"];
+
 
 function timeLabel(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
