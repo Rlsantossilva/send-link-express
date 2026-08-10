@@ -117,9 +117,10 @@ function ConversationsPage() {
 
   useEffect(() => {
     if (!activeId || !myId || messages.length === 0) return;
-    void markConversationRead(activeId).then(() =>
-      queryClient.invalidateQueries({ queryKey: ["receipts", activeId] }),
-    );
+    void markConversationRead(activeId).then(() => {
+      void queryClient.invalidateQueries({ queryKey: ["receipts", activeId] });
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    });
   }, [activeId, myId, messages.length, queryClient]);
 
   useEffect(() => {
