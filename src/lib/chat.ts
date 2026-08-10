@@ -177,7 +177,124 @@ export async function leaveConversation(conversationId: string) {
   if (error) throw error;
 }
 
+export type MessageReceipt = {
+  message_id: string;
+  user_id: string;
+  delivered_at: string;
+  read_at: string | null;
+};
+
+export async function listReceipts(conversationId: string): Promise<MessageReceipt[]> {
+  const { data: msgs, error: msgErr } = await supabase
+    .from("messages")
+    .select("id")
+    .eq("conversation_id", conversationId);
+  if (msgErr) throw msgErr;
+  const ids = (msgs ?? []).map((m) => m.id);
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase
+    .from("message_receipts")
+    .select("message_id, user_id, delivered_at, read_at")
+    .in("message_id", ids);
+  if (error) throw error;
+  return (data ?? []) as MessageReceipt[];
+}
+
+export async function markConversationRead(conversationId: string) {
+  const userId = await requireUserId();
+  const { data: msgs, error } = await supabase
+    .from("messages")
+    .select("id, sender_id")
+    .eq("conversation_id", conversationId);
+  if (error) throw error;
+  const ids = (msgs ?? []).filter((m) => m.sender_id !== userId).map((m) => m.id);
+  if (ids.length === 0) return;
+  const now = new Date().toISOString();
+  const { error: upsertError } = await supabase
+    .from("message_receipts")
+    .upsert(
+      ids.map((message_id) => ({ message_id, user_id: userId, delivered_at: now, read_at: now })),
+      { onConflict: "message_id,user_id" },
+    );
+  if (upsertError) throw upsertError;
+}
+
+export async function markMessagesDelivered(messageIds: string[]) {
+  if (messageIds.length === 0) return;
+  const userId = await requireUserId();
+  const { error } = await supabase.from("message_receipts").upsert(
+    messageIds.map((message_id) => ({ message_id, user_id: userId })),
+    { onConflict: "message_id,user_id", ignoreDuplicates: true },
+  );
+  if (error) throw error;
+}
+
+export async function listBlockedIds(): Promise<string[]> {
+  const userId = await requireUserId();
+  const { data, error } = await supabase
+    .from("blocked_users")
+    .select("blocked_id")
+    .eq("blocker_id", userId);
+  if (error) throw error;
+  return (data ?? []).map((row) => row.blocked_id);
+}
+
+export async function blockUser(blockedId: string) {
+  const userId = await requireUserId();
+  const { error } = await supabase
+    .from("blocked_users")
+    .upsert({ blocker_id: userId, blocked_id: blockedId }, { onConflict: "blocker_id,blocked_id" });
+  if (error) throw error;
+}
+
+export async function unblockUser(blockedId: string) {
+  const userId = await requireUserId();
+  const { error } = await supabase
+    .from("blocked_users")
+    .delete()
+    .eq("blocker_id", userId)
+    .eq("blocked_id", blockedId);
+  if (error) throw error;
+}
+
+export async function updateGroupInfo(conversationId: string, patch: { name?: string; avatar_url?: string }) {
+  const { error } = await supabase.from("conversations").update(patch).eq("id", conversationId);
+  if (error) throw error;
+}
+
+export async function uploadGroupAvatar(conversationId: string, file: File) {
+  const userId = await requireUserId();
+  const extension = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
+  const path = `groups/${conversationId}/${userId}-${crypto.randomUUID()}.${extension}`;
+  const { error } = await supabase.storage.from("avatars").upload(path, file, {
+    contentType: file.type || "image/jpeg",
+    upsert: false,
+  });
+  if (error) throw error;
+  await updateGroupInfo(conversationId, { avatar_url: path });
+  return path;
+}
+
+export async function addGroupMembers(conversationId: string, userIds: string[]) {
+  if (userIds.length === 0) return;
+  const { error } = await supabase.from("conversation_members").upsert(
+    userIds.map((user_id) => ({ conversation_id: conversationId, user_id, is_admin: false })),
+    { onConflict: "conversation_id,user_id", ignoreDuplicates: true },
+  );
+  if (error) throw error;
+}
+
+export async function removeGroupMember(conversationId: string, userId: string) {
+  const { error } = await supabase
+    .from("conversation_members")
+    .delete()
+    .eq("conversation_id", conversationId)
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
 export async function listReactions(conversationId: string): Promise<MessageReaction[]> {
+
   const { data: msgs, error: msgErr } = await supabase
     .from("messages")
     .select("id")
