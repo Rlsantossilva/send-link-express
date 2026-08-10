@@ -319,14 +319,22 @@ function ConversationsPage() {
                     conversation.id === activeId && "bg-muted",
                   )}
                 >
-                  <UserAvatar
-                    path={conversationAvatarPath(conversation, myId ?? "")}
-                    name={conversationTitle(conversation, myId ?? "")}
-                    online={
-                      !conversation.is_group &&
-                      conversation.members.some((m) => m.id !== myId && onlineIds.has(m.id))
-                    }
-                  />
+                  <div className="relative shrink-0">
+                    <UserAvatar
+                      path={conversationAvatarPath(conversation, myId ?? "")}
+                      name={conversationTitle(conversation, myId ?? "")}
+                      online={
+                        !conversation.is_group &&
+                        conversation.members.some((m) => m.id !== myId && onlineIds.has(m.id))
+                      }
+                    />
+                    {conversation.unreadCount > 0 ? (
+                      <span className="absolute -right-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full rounded-bl-sm bg-destructive px-1.5 text-[10px] font-bold leading-none text-destructive-foreground shadow-md ring-2 ring-background">
+                        {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}
+                      </span>
+                    ) : null}
+                  </div>
+
 
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">
