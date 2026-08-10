@@ -252,8 +252,17 @@ function ConversationsPage() {
                       </p>
                     ) : null}
                     <p className="truncate text-xs text-muted-foreground">
-                      {messagePreview(conversation.lastMessage)}
+                      {conversation.is_group && conversation.lastMessage
+                        ? `${
+                            conversation.lastMessage.sender_id === myId
+                              ? "Você"
+                              : conversation.members.find(
+                                  (m) => m.id === conversation.lastMessage?.sender_id,
+                                )?.display_name ?? "Alguém"
+                          }: ${messagePreview(conversation.lastMessage)}`
+                        : messagePreview(conversation.lastMessage)}
                     </p>
+
                   </div>
                 </button>
               ))
