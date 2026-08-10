@@ -1,6 +1,27 @@
 import { supabase } from "@/integrations/supabase/client";
 import { lookupProfile, type PublicProfileLookup } from "@/lib/profiles.functions";
 import { answerInvite } from "@/lib/invites.functions";
+import { notifyConversationEvent } from "@/lib/push.functions";
+
+/** Dispara as notificações push sem travar o envio da mensagem. */
+function fireNotification(input: {
+  conversationId: string;
+  kind: "message" | "reaction";
+  preview?: string;
+  emoji?: string;
+  targetUserId?: string;
+}) {
+  void notifyConversationEvent({
+    data: {
+      conversationId: input.conversationId,
+      kind: input.kind,
+      preview: (input.preview ?? "").slice(0, 160),
+      ...(input.emoji ? { emoji: input.emoji } : {}),
+      ...(input.targetUserId ? { targetUserId: input.targetUserId } : {}),
+    },
+  }).catch(() => undefined);
+}
+
 
 
 export type Profile = {
@@ -374,7 +395,22 @@ export async function toggleReaction(messageId: string, emoji: string) {
     .from("message_reactions")
     .insert({ message_id: messageId, user_id: userId, emoji });
   if (error) throw error;
+
+  const { data: message } = await supabase
+    .from("messages")
+    .select("conversation_id, sender_id")
+    .eq("id", messageId)
+    .maybeSingle();
+  if (message && message.sender_id !== userId) {
+    fireNotification({
+      conversationId: message.conversation_id,
+      kind: "reaction",
+      emoji,
+      targetUserId: message.sender_id,
+    });
+  }
 }
+
 
 export async function listMessages(conversationId: string): Promise<Message[]> {
   const { data, error } = await supabase
@@ -395,7 +431,9 @@ export async function sendTextMessage(conversationId: string, body: string) {
     body,
   });
   if (error) throw error;
+  fireNotification({ conversationId, kind: "message", preview: body });
 }
+
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 
@@ -431,7 +469,16 @@ export async function sendMediaMessage(options: {
     duration_seconds: options.durationSeconds ?? null,
   });
   if (error) throw error;
+
+  const label =
+    options.kind === "image" ? "📷 Foto" : options.kind === "video" ? "🎬 Vídeo" : "🎤 Mensagem de voz";
+  fireNotification({
+    conversationId: options.conversationId,
+    kind: "message",
+    preview: options.caption?.trim() || label,
+  });
 }
+
 
 export async function deleteMessage(messageId: string) {
   const { error } = await supabase.from("messages").delete().eq("id", messageId);

@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { NotificationSettingsCard } from "@/components/notification-settings-card";
+
 
 export const Route = createFileRoute("/_authenticated/perfil")({
   head: () => ({
@@ -168,7 +170,10 @@ function ProfilePage() {
             </Button>
           </CardContent>
         </Card>
+
+        <NotificationSettingsCard />
       </div>
+
     </AppShell>
   );
 }
