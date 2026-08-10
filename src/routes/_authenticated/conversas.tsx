@@ -369,12 +369,6 @@ function ConversationsPage() {
                       </p>
                     ) : null}
                   </div>
-
-                  {conversation.unreadCount > 0 ? (
-                    <span className="ml-1 inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-bold leading-none text-destructive-foreground">
-                      {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}
-                    </span>
-                  ) : null}
                 </button>
               ))
             )}
