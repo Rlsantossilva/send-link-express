@@ -153,10 +153,13 @@ function ConversationsPage() {
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions" }, () => {
         void queryClient.invalidateQueries({ queryKey: ["reactions"] });
+        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "message_receipts" }, () => {
         void queryClient.invalidateQueries({ queryKey: ["receipts"] });
+        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
       })
+
 
       .subscribe();
 
