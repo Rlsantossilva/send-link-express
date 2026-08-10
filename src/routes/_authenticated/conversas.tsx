@@ -66,22 +66,35 @@ function ConversationsPage() {
   const longPressed = useRef(false);
   const [menuConversation, setMenuConversation] = useState<ConversationWithPeople | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
 
   const { data: myId } = useQuery({ queryKey: ["my-id"], queryFn: requireUserId });
+  const onlineIds = usePresence(myId);
   const { data: allConversations = [], isLoading } = useQuery({
     queryKey: ["conversations"],
     queryFn: listConversations,
   });
+  const { data: blockedIds = [] } = useQuery({ queryKey: ["blocked"], queryFn: listBlockedIds });
+
+  const visibleConversations = useMemo(
+    () =>
+      allConversations.filter(
+        (conversation) =>
+          conversation.is_group ||
+          !conversation.members.some((member) => member.id !== myId && blockedIds.includes(member.id)),
+      ),
+    [allConversations, blockedIds, myId],
+  );
 
   const conversations = useMemo(
-    () => allConversations.filter((conversation) => conversation.is_archived === showArchived),
-    [allConversations, showArchived],
+    () => visibleConversations.filter((conversation) => conversation.is_archived === showArchived),
+    [visibleConversations, showArchived],
   );
-  const archivedCount = allConversations.filter((conversation) => conversation.is_archived).length;
+  const archivedCount = visibleConversations.filter((conversation) => conversation.is_archived).length;
 
   const active = useMemo(
-    () => allConversations.find((conversation) => conversation.id === activeId) ?? null,
-    [allConversations, activeId],
+    () => visibleConversations.find((conversation) => conversation.id === activeId) ?? null,
+    [visibleConversations, activeId],
   );
 
   const { data: messages = [] } = useQuery({
@@ -95,6 +108,38 @@ function ConversationsPage() {
     queryFn: () => listReactions(activeId as string),
     enabled: Boolean(activeId),
   });
+
+  const { data: receipts = [] } = useQuery({
+    queryKey: ["receipts", activeId],
+    queryFn: () => listReceipts(activeId as string),
+    enabled: Boolean(activeId),
+  });
+
+  useEffect(() => {
+    if (!activeId || !myId || messages.length === 0) return;
+    void markConversationRead(activeId).then(() =>
+      queryClient.invalidateQueries({ queryKey: ["receipts", activeId] }),
+    );
+  }, [activeId, myId, messages.length, queryClient]);
+
+  useEffect(() => {
+    if (!myId) return;
+    const pending = allConversations
+      .filter((conversation) => conversation.id !== activeId)
+      .map((conversation) => conversation.lastMessage)
+      .filter((message) => message && message.sender_id !== myId)
+      .map((message) => message!.id);
+    if (pending.length > 0) void markMessagesDelivered(pending);
+  }, [allConversations, activeId, myId]);
+
+  function ownStatus(messageId: string): "sent" | "delivered" | "read" {
+    const others = (active?.members ?? []).filter((member) => member.id !== myId).length;
+    const list = receipts.filter((receipt) => receipt.message_id === messageId);
+    if (others > 0 && list.filter((receipt) => receipt.read_at).length >= others) return "read";
+    if (list.length > 0) return "delivered";
+    return "sent";
+  }
+
 
   useEffect(() => {
     const channel = supabase
