@@ -129,6 +129,9 @@ export function MessageItem({
       {!isOwn ? <UserAvatar path={senderAvatar} name={senderName} className="size-8" /> : null}
 
       <div className={cn("flex max-w-[85%] flex-col sm:max-w-[70%]", isOwn ? "items-end" : "items-start")}>
+        {isOwn ? (
+          <span className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Eu</span>
+        ) : null}
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <div
@@ -142,11 +145,7 @@ export function MessageItem({
                   : "rounded-bl-sm border border-border bg-bubble-other text-bubble-other-foreground",
               )}
             >
-              {isOwn ? (
-                <span className="mb-1 inline-block rounded-full bg-bubble-own-foreground/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
-                  Eu
-                </span>
-              ) : null}
+
               {showSender && !isOwn ? (
                 <p className="mb-1 text-xs font-semibold text-primary">{senderName}</p>
               ) : null}
