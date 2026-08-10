@@ -1,6 +1,27 @@
 import { supabase } from "@/integrations/supabase/client";
 import { lookupProfile, type PublicProfileLookup } from "@/lib/profiles.functions";
 import { answerInvite } from "@/lib/invites.functions";
+import { notifyConversationEvent } from "@/lib/push.functions";
+
+/** Dispara as notificações push sem travar o envio da mensagem. */
+function fireNotification(input: {
+  conversationId: string;
+  kind: "message" | "reaction";
+  preview?: string;
+  emoji?: string;
+  targetUserId?: string;
+}) {
+  void notifyConversationEvent({
+    data: {
+      conversationId: input.conversationId,
+      kind: input.kind,
+      preview: (input.preview ?? "").slice(0, 160),
+      ...(input.emoji ? { emoji: input.emoji } : {}),
+      ...(input.targetUserId ? { targetUserId: input.targetUserId } : {}),
+    },
+  }).catch(() => undefined);
+}
+
 
 
 export type Profile = {
