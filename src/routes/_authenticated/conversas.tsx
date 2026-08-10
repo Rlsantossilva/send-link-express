@@ -142,44 +142,8 @@ function ConversationsPage() {
   }
 
 
-  useEffect(() => {
-    const channel = supabase
-      .channel("chat-stream")
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["messages"] });
-        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["reactions"] });
-        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "message_receipts" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["receipts"] });
-        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "conversation_members" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-        void queryClient.invalidateQueries({ queryKey: ["contacts"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "contacts" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["contacts"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "blocked_users" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["blocked"] });
-        void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      })
-      .subscribe();
+  // Sincronização em tempo real é feita globalmente em useRealtimeSync (AppShell).
 
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
