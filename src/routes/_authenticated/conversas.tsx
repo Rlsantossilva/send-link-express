@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { Archive, ArchiveRestore, ArrowLeft, Ban, MessageSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+
 import {
   blockUser,
   conversationAvatarPath,
