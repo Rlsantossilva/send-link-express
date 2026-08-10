@@ -101,7 +101,7 @@
   --bubble-other-foreground: oklch(0.22 0.03 265);
   --online: oklch(0.72 0.19 145);
   --tick-sent: oklch(0.62 0.01 265);
-  --tick-read: oklch(0.62 0.19 300);
+  --tick-read: oklch(0.62 0.17 150);
 
   --gradient-brand: linear-gradient(
     135deg,
@@ -154,7 +154,7 @@
   --bubble-other-foreground: oklch(0.97 0.01 95);
   --online: oklch(0.75 0.19 145);
   --tick-sent: oklch(0.72 0.01 265);
-  --tick-read: oklch(0.72 0.19 300);
+  --tick-read: oklch(0.75 0.18 150);
   --sidebar: oklch(0.23 0.03 265);
   --sidebar-foreground: oklch(0.97 0.01 95);
   --sidebar-primary: oklch(0.65 0.17 258);
