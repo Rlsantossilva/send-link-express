@@ -467,6 +467,8 @@ function ConversationsPage() {
                       senderName={sender?.display_name ?? "Alguém"}
                       senderAvatar={sender?.avatar_url}
                       showSender={active.is_group}
+                      status={message.sender_id === myId ? ownStatus(message.id) : undefined}
+
                       reactions={reactions.filter((r) => r.message_id === message.id)}
                       myId={myId ?? ""}
                       nameById={Object.fromEntries(
