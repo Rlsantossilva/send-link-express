@@ -469,7 +469,16 @@ export async function sendMediaMessage(options: {
     duration_seconds: options.durationSeconds ?? null,
   });
   if (error) throw error;
+
+  const label =
+    options.kind === "image" ? "📷 Foto" : options.kind === "video" ? "🎬 Vídeo" : "🎤 Mensagem de voz";
+  fireNotification({
+    conversationId: options.conversationId,
+    kind: "message",
+    preview: options.caption?.trim() || label,
+  });
 }
+
 
 export async function deleteMessage(messageId: string) {
   const { error } = await supabase.from("messages").delete().eq("id", messageId);
