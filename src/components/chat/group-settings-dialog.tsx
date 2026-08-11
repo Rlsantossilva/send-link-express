@@ -146,7 +146,7 @@ export function GroupSettingsDialog({
             <p className="text-sm font-semibold">Participantes ({conversation.members.length})</p>
             {conversation.members.map((member) => (
               <div key={member.id} className="flex items-center gap-3 rounded-xl border border-border px-2 py-2">
-                <UserAvatar path={member.avatar_url} name={member.display_name} className="size-8" />
+                <UserAvatar userId={member.id} path={member.avatar_url} name={member.display_name} className="size-8" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm">
                     {member.id === myId ? "Você" : member.display_name || member.email}
@@ -185,6 +185,7 @@ export function GroupSettingsDialog({
                     onClick={() => addMutation.mutate(contact.contact_id)}
                   >
                     <UserAvatar
+                      userId={contact.contact_id}
                       path={contact.profile?.avatar_url}
                       name={contact.profile?.display_name}
                       className="size-8"

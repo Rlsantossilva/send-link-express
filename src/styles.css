@@ -199,3 +199,67 @@
 @utility shadow-bubble {
   box-shadow: var(--shadow-bubble);
 }
+
+/* Brilho de estrela quando o avatar tem foto nova na biblioteca */
+@keyframes avatar-star-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--secondary),
+      0 0 10px 2px oklch(0.87 0.16 92 / 0.65);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px var(--secondary),
+      0 0 22px 8px oklch(0.87 0.16 92 / 0.9);
+  }
+}
+
+@keyframes avatar-star-halo {
+  0% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.55);
+  }
+}
+
+@keyframes avatar-star-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(1.35) rotate(18deg);
+  }
+}
+
+.avatar-star-ring {
+  animation: avatar-star-pulse 1.8s ease-in-out infinite;
+}
+
+.avatar-star-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: var(--gradient-sun);
+  animation: avatar-star-halo 1.8s ease-out infinite;
+  pointer-events: none;
+}
+
+.avatar-star-spark {
+  animation: avatar-star-twinkle 1.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 4px oklch(0.87 0.16 92 / 0.9));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-star-ring,
+  .avatar-star-glow,
+  .avatar-star-spark {
+    animation: none;
+  }
+}

@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      avatar_photo_views: {
+        Row: {
+          id: string
+          photo_id: string
+          viewed_at: string
+          viewer_id: string
+        }
+        Insert: {
+          id?: string
+          photo_id: string
+          viewed_at?: string
+          viewer_id: string
+        }
+        Update: {
+          id?: string
+          photo_id?: string
+          viewed_at?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avatar_photo_views_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "avatar_photos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      avatar_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          path: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          path: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       blocked_users: {
         Row: {
           blocked_id: string

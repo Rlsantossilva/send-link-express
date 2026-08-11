@@ -108,7 +108,12 @@ function ProfilePage() {
             <CardDescription>PNG ou JPG de até 5 MB.</CardDescription>
           </CardHeader>
           <CardContent className="flex items-center gap-4">
-            <UserAvatar path={profile?.avatar_url} name={profile?.display_name} className="size-20" />
+            <UserAvatar
+              userId={profile?.id}
+              path={profile?.avatar_url}
+              name={profile?.display_name}
+              className="size-20"
+            />
             <input
               ref={fileInput}
               type="file"
