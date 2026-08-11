@@ -1,12 +1,13 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessageSquare, Users, UserRound, LogOut } from "lucide-react";
-import type { ReactNode } from "react";
+import { MessageSquare, Users, UserRound, LogOut, Images } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile } from "@/lib/chat";
 import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 import { useNotifications } from "@/hooks/use-notifications";
 import { Button } from "@/components/ui/button";
+import { AvatarGalleryDialog } from "@/components/avatar-gallery-dialog";
 
 const NAV = [
   { to: "/conversas", label: "Conversas", icon: MessageSquare },
@@ -16,6 +17,7 @@ const NAV = [
 export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [galleryOpen, setGalleryOpen] = useState(false);
   useRealtimeSync();
   useNotifications();
 
@@ -61,6 +63,17 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="max-w-28 truncate text-[10px] text-muted-foreground">{profile.email}</span>
             ) : null}
           </Link>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 md:mt-2 md:justify-start"
+            disabled={!profile?.id}
+            onClick={() => setGalleryOpen(true)}
+          >
+            <Images className="size-4" />
+            <span className="hidden sm:inline">Adicionar fotos</span>
+          </Button>
         </nav>
 
         <Button variant="ghost" size="sm" className="md:mt-auto md:justify-start" onClick={signOut}>
@@ -68,6 +81,16 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="hidden sm:inline">Sair</span>
         </Button>
       </aside>
+
+      {galleryOpen && profile?.id ? (
+        <AvatarGalleryDialog
+          ownerId={profile.id}
+          name={profile.display_name}
+          canManage
+          open={galleryOpen}
+          onOpenChange={setGalleryOpen}
+        />
+      ) : null}
 
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</main>
     </div>
