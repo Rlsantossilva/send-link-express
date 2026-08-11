@@ -1,6 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { createSignedUrl } from "@/lib/chat";
+import { AvatarGalleryDialog } from "@/components/avatar-gallery-dialog";
+import { createSignedUrl, requireUserId } from "@/lib/chat";
+import { listGlowingUserIds, markGallerySeen } from "@/lib/gallery";
 import { cn } from "@/lib/utils";
 
 function initials(name?: string | null) {
@@ -18,12 +21,18 @@ export function UserAvatar({
   name,
   className,
   online,
+  userId,
 }: {
   path?: string | null | undefined;
   name?: string | null | undefined;
   className?: string | undefined;
   online?: boolean | undefined;
+  /** Quando informado, o avatar abre a biblioteca de fotos e brilha em novidades. */
+  userId?: string | null | undefined;
 }) {
+  const queryClient = useQueryClient();
+  const [galleryOpen, setGalleryOpen] = useState(false);
+
   const { data: url } = useQuery({
     queryKey: ["avatar-url", path],
     queryFn: () => createSignedUrl("avatars", path as string),
@@ -31,14 +40,42 @@ export function UserAvatar({
     staleTime: 30 * 60 * 1000,
   });
 
-  return (
+  const { data: myId } = useQuery({
+    queryKey: ["my-id"],
+    queryFn: requireUserId,
+    enabled: Boolean(userId),
+    staleTime: Infinity,
+  });
+
+  const { data: glowing = [] } = useQuery({
+    queryKey: ["gallery-glow"],
+    queryFn: listGlowingUserIds,
+    enabled: Boolean(userId),
+    staleTime: 30 * 1000,
+  });
+
+  const hasNews = Boolean(userId) && glowing.includes(userId as string);
+
+  const picture = (
     <span className="relative inline-block shrink-0">
-      <Avatar className={cn("size-11 border border-border", className)}>
+      {hasNews ? <span aria-hidden className={cn("avatar-star-glow", className)} /> : null}
+      <Avatar
+        className={cn(
+          "size-11 border border-border",
+          hasNews && "avatar-star-ring border-transparent",
+          className,
+        )}
+      >
         {url ? <AvatarImage src={url} alt={name ?? "Avatar"} /> : null}
         <AvatarFallback className="bg-sun-gradient font-semibold text-secondary-foreground">
           {initials(name)}
         </AvatarFallback>
       </Avatar>
+      {hasNews ? (
+        <span aria-hidden className="avatar-star-spark absolute -right-1 -top-1 text-[11px] leading-none">
+          ✨
+        </span>
+      ) : null}
       {online ? (
         <span
           aria-label="Online"
@@ -48,5 +85,37 @@ export function UserAvatar({
       ) : null}
     </span>
   );
-}
 
+  if (!userId) return picture;
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label={hasNews ? `Ver fotos novas de ${name ?? "contato"}` : `Ver fotos de ${name ?? "contato"}`}
+        className="rounded-full outline-none transition-transform focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
+        onClick={(event) => {
+          event.stopPropagation();
+          event.preventDefault();
+          setGalleryOpen(true);
+          if (myId && myId !== userId) {
+            void markGallerySeen(userId).then(() => {
+              void queryClient.invalidateQueries({ queryKey: ["gallery-glow"] });
+            });
+          }
+        }}
+      >
+        {picture}
+      </button>
+      {galleryOpen ? (
+        <AvatarGalleryDialog
+          ownerId={userId}
+          name={name}
+          canManage={myId === userId}
+          open={galleryOpen}
+          onOpenChange={setGalleryOpen}
+        />
+      ) : null}
+    </>
+  );
+}
