@@ -278,7 +278,11 @@ function ContactsPage() {
                     disabled={openChat.isPending}
                     onClick={() => openChat.mutate(contact.contact_id)}
                   >
-                    <UserAvatar path={contact.profile?.avatar_url} name={contact.profile?.display_name} />
+                    <UserAvatar
+                      userId={contact.contact_id}
+                      path={contact.profile?.avatar_url}
+                      name={contact.profile?.display_name}
+                    />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold">
                         {contact.nickname || contact.profile?.display_name}

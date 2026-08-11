@@ -12,6 +12,8 @@ const TABLE_KEYS: Record<string, string[][]> = {
   contacts: [["contacts"], ["conversations"]],
   invites: [["invites"], ["contacts"]],
   blocked_users: [["blocked"], ["conversations"]],
+  avatar_photos: [["gallery-glow"], ["avatar-photos"]],
+  avatar_photo_views: [["gallery-glow"]],
 };
 
 /** Keeps every cached list in sync with the database in real time. */

@@ -297,6 +297,11 @@ function ConversationsPage() {
                 >
                   <div className="relative shrink-0">
                     <UserAvatar
+                      userId={
+                        conversation.is_group
+                          ? undefined
+                          : conversation.members.find((m) => m.id !== myId)?.id
+                      }
                       path={conversationAvatarPath(conversation, myId ?? "")}
                       name={conversationTitle(conversation, myId ?? "")}
                       online={
@@ -439,6 +444,7 @@ function ConversationsPage() {
                   </button>
                 ) : (
                   <UserAvatar
+                    userId={active.members.find((m) => m.id !== myId)?.id}
                     path={conversationAvatarPath(active, myId ?? "")}
                     name={conversationTitle(active, myId ?? "")}
                     className="size-9"

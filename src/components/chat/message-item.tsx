@@ -126,7 +126,7 @@ export function MessageItem({
 
   return (
     <div className={cn("flex items-end gap-2", isOwn ? "justify-end" : "justify-start")}>
-      {!isOwn ? <UserAvatar path={senderAvatar} name={senderName} className="size-8" /> : null}
+      {!isOwn ? <UserAvatar userId={message.sender_id} path={senderAvatar} name={senderName} className="size-8" /> : null}
 
       <div className={cn("flex max-w-[85%] flex-col sm:max-w-[70%]", isOwn ? "items-end" : "items-start")}>
         {isOwn ? (
