@@ -72,10 +72,24 @@ export function UserAvatar({
         </AvatarFallback>
       </Avatar>
       {hasNews ? (
-        <span aria-hidden className="avatar-star-spark absolute -right-1 -top-1 text-[11px] leading-none">
-          ✨
-        </span>
+        <>
+          <span
+            aria-hidden
+            className="avatar-star-spark absolute -left-1 -top-1 z-10 text-[11px] leading-none"
+          >
+            ✨
+          </span>
+          {url ? (
+            <img
+              aria-hidden
+              src={url}
+              alt=""
+              className="avatar-photo-float pointer-events-none absolute left-1/2 top-0 size-4 rounded-md border border-secondary/70 object-cover shadow-sm"
+            />
+          ) : null}
+        </>
       ) : null}
+
       {online ? (
         <span
           aria-label="Online"

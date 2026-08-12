@@ -256,10 +256,31 @@
   filter: drop-shadow(0 0 4px oklch(0.87 0.16 92 / 0.9));
 }
 
+/* Miniatura da foto nova flutuando e esmaecendo acima do avatar */
+@keyframes avatar-photo-float {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.5) rotate(-6deg);
+  }
+  25% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -22px) scale(0.85) rotate(8deg);
+  }
+}
+
+.avatar-photo-float {
+  animation: avatar-photo-float 2.6s ease-out infinite;
+}
+
+
 @media (prefers-reduced-motion: reduce) {
   .avatar-star-ring,
   .avatar-star-glow,
-  .avatar-star-spark {
+  .avatar-star-spark,
+  .avatar-photo-float {
     animation: none;
   }
 }
