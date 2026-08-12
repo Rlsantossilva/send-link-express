@@ -279,7 +279,8 @@
 @media (prefers-reduced-motion: reduce) {
   .avatar-star-ring,
   .avatar-star-glow,
-  .avatar-star-spark {
+  .avatar-star-spark,
+  .avatar-photo-float {
     animation: none;
   }
 }
