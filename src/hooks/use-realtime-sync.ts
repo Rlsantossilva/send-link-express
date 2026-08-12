@@ -14,6 +14,7 @@ const TABLE_KEYS: Record<string, string[][]> = {
   blocked_users: [["blocked"], ["conversations"]],
   avatar_photos: [["gallery-glow"], ["avatar-photos"]],
   avatar_photo_views: [["gallery-glow"]],
+  avatar_photo_reactions: [["avatar-photo-reactions"], ["photo-reaction-alerts"]],
 };
 
 /** Keeps every cached list in sync with the database in real time. */

@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AvatarGalleryDialog } from "@/components/avatar-gallery-dialog";
 import { createSignedUrl, requireUserId } from "@/lib/chat";
-import { listGlowingUserIds, markGallerySeen } from "@/lib/gallery";
+import { listGlowingPreviews, markGallerySeen } from "@/lib/gallery";
 import { cn } from "@/lib/utils";
 
 function initials(name?: string | null) {
@@ -47,14 +47,22 @@ export function UserAvatar({
     staleTime: Infinity,
   });
 
-  const { data: glowing = [] } = useQuery({
+  const { data: glowing = {} } = useQuery({
     queryKey: ["gallery-glow"],
-    queryFn: listGlowingUserIds,
+    queryFn: listGlowingPreviews,
     enabled: Boolean(userId),
     staleTime: 30 * 1000,
   });
 
-  const hasNews = Boolean(userId) && glowing.includes(userId as string);
+  const preview = userId ? glowing[userId] : undefined;
+  const hasNews = Boolean(preview);
+
+  const { data: previewUrl } = useQuery({
+    queryKey: ["avatar-url", preview?.path],
+    queryFn: () => createSignedUrl("avatars", preview!.path),
+    enabled: Boolean(preview?.path),
+    staleTime: 30 * 60 * 1000,
+  });
 
   const picture = (
     <span className="relative inline-block shrink-0">
@@ -79,12 +87,12 @@ export function UserAvatar({
           >
             ✨
           </span>
-          {url ? (
+          {previewUrl ? (
             <img
               aria-hidden
-              src={url}
+              src={previewUrl}
               alt=""
-              className="avatar-photo-float pointer-events-none absolute left-full top-1/2 ml-1 size-6 rounded-md border border-secondary/70 object-cover shadow-sm"
+              className="avatar-photo-float pointer-events-none absolute left-full top-1/2 ml-1 size-[46px] rounded-lg border border-secondary/70 object-cover shadow-md"
             />
           ) : null}
         </>

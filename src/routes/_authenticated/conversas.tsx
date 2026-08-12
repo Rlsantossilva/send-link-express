@@ -33,6 +33,7 @@ import { Composer } from "@/components/chat/composer";
 import { MessageItem } from "@/components/chat/message-item";
 import { GroupSettingsDialog } from "@/components/chat/group-settings-dialog";
 import { NewConversationDialog, NewGroupDialog } from "@/components/chat/new-conversation-dialog";
+import { PhotoReactionAlerts } from "@/components/photo-reaction-alerts";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -261,6 +262,8 @@ function ConversationsPage() {
               {archivedCount} conversa(s) arquivada(s)
             </button>
           ) : null}
+
+          <PhotoReactionAlerts />
 
           <div className="flex-1 overflow-y-auto">
             {isLoading ? (

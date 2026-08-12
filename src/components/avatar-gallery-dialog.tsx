@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -11,13 +11,20 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { createSignedUrl } from "@/lib/chat";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { createSignedUrl, requireUserId } from "@/lib/chat";
 import {
   deleteAvatarPhoto,
   listAvatarPhotos,
+  listPhotoReactions,
+  listReactorNames,
+  togglePhotoReaction,
   uploadAvatarPhoto,
   type AvatarPhoto,
+  type PhotoReaction,
 } from "@/lib/gallery";
+
+const PHOTO_REACTIONS = ["❤️", "😍", "👏", "😂", "😮", "🔥", "🙏", "🎉"];
 
 function GalleryImage({ photo }: { photo: AvatarPhoto }) {
   const { data: url } = useQuery({
@@ -38,21 +45,83 @@ function GalleryImage({ photo }: { photo: AvatarPhoto }) {
   );
 }
 
+function ReactionChips({
+  reactions,
+  names,
+  myId,
+  compact,
+}: {
+  reactions: PhotoReaction[];
+  names: Record<string, string>;
+  myId?: string | undefined;
+  compact?: boolean;
+}) {
+  const grouped = new Map<string, PhotoReaction[]>();
+  for (const reaction of reactions) {
+    const list = grouped.get(reaction.emoji) ?? [];
+    list.push(reaction);
+    grouped.set(reaction.emoji, list);
+  }
+  if (grouped.size === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {[...grouped.entries()].map(([emoji, list]) => (
+        <Popover key={emoji}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-label={`Ver quem reagiu com ${emoji}`}
+              className={cnChip(compact)}
+            >
+              <span>{emoji}</span>
+              <span className="font-semibold">{list.length}</span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto max-w-56 p-2 text-xs">
+            <p className="mb-1 font-semibold">
+              {emoji} {list.length} {list.length === 1 ? "reação" : "reações"}
+            </p>
+            <ul className="space-y-0.5 text-muted-foreground">
+              {list.map((reaction) => (
+                <li key={reaction.id}>
+                  {reaction.user_id === myId ? "Você" : names[reaction.user_id] ?? "Alguém"}
+                </li>
+              ))}
+            </ul>
+          </PopoverContent>
+        </Popover>
+      ))}
+    </div>
+  );
+}
+
+function cnChip(compact?: boolean) {
+  return [
+    "inline-flex items-center gap-0.5 rounded-full border border-border bg-background/90 shadow-sm transition-transform hover:scale-110",
+    compact ? "px-1 py-0 text-[10px]" : "px-2 py-0.5 text-xs",
+  ].join(" ");
+}
+
 export function AvatarGalleryDialog({
   ownerId,
   name,
   canManage,
   open,
   onOpenChange,
+  initialPhotoId,
 }: {
   ownerId: string;
   name?: string | null | undefined;
   canManage: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialPhotoId?: string | undefined;
 }) {
   const queryClient = useQueryClient();
   const [zoom, setZoom] = useState<AvatarPhoto | null>(null);
+
+  const { data: myId } = useQuery({ queryKey: ["my-id"], queryFn: requireUserId });
 
   const { data: photos = [], isLoading } = useQuery({
     queryKey: ["avatar-photos", ownerId],
@@ -60,9 +129,32 @@ export function AvatarGalleryDialog({
     enabled: open,
   });
 
+  const { data: reactions = [] } = useQuery({
+    queryKey: ["avatar-photo-reactions", ownerId, photos.map((photo) => photo.id).join(",")],
+    queryFn: () => listPhotoReactions(photos.map((photo) => photo.id)),
+    enabled: open && photos.length > 0,
+  });
+
+  const { data: names = {} } = useQuery({
+    queryKey: ["reactor-names", reactions.map((reaction) => reaction.user_id).join(",")],
+    queryFn: () => listReactorNames(reactions.map((reaction) => reaction.user_id)),
+    enabled: reactions.length > 0,
+  });
+
+  useEffect(() => {
+    if (!initialPhotoId || photos.length === 0) return;
+    const target = photos.find((photo) => photo.id === initialPhotoId);
+    if (target) setZoom(target);
+  }, [initialPhotoId, photos]);
+
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ["avatar-photos", ownerId] });
     void queryClient.invalidateQueries({ queryKey: ["gallery-glow"] });
+  };
+
+  const refreshReactions = () => {
+    void queryClient.invalidateQueries({ queryKey: ["avatar-photo-reactions"] });
+    void queryClient.invalidateQueries({ queryKey: ["photo-reaction-alerts"] });
   };
 
   const uploadMutation = useMutation({
@@ -84,9 +176,19 @@ export function AvatarGalleryDialog({
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const reactMutation = useMutation({
+    mutationFn: ({ photoId, emoji }: { photoId: string; emoji: string }) =>
+      togglePhotoReaction(photoId, emoji),
+    onSuccess: refreshReactions,
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const reactionsOf = (photoId: string) =>
+    reactions.filter((reaction) => reaction.photo_id === photoId);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85dvh] overflow-y-auto">
+      <DialogContent className="flex max-h-[90dvh] w-[96vw] max-w-6xl flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="size-4 text-secondary" />
@@ -94,8 +196,8 @@ export function AvatarGalleryDialog({
           </DialogTitle>
           <DialogDescription>
             {canManage
-              ? "Adicione fotos ao seu avatar. Cada foto nova faz seu avatar brilhar como uma estrela para quem ainda não viu."
-              : "Toque em uma foto para ampliar."}
+              ? "Adicione fotos ao seu avatar e veja quem reagiu a cada uma delas."
+              : "Toque para ampliar e reaja com emojis nas fotos."}
           </DialogDescription>
         </DialogHeader>
 
@@ -121,51 +223,77 @@ export function AvatarGalleryDialog({
           </div>
         ) : null}
 
-        {isLoading ? (
-          <p className="text-sm text-muted-foreground">Carregando fotos…</p>
-        ) : photos.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {canManage ? "Você ainda não adicionou fotos." : "Nenhuma foto por aqui ainda."}
-          </p>
-        ) : (
-          <div className="grid grid-cols-3 gap-2">
-            {photos.map((photo) => (
-              <div key={photo.id} className="group relative aspect-square overflow-hidden rounded-xl border border-border">
-                <button
-                  type="button"
-                  className="size-full"
-                  onClick={() => setZoom(photo)}
-                  aria-label="Ampliar foto"
-                >
-                  <GalleryImage photo={photo} />
-                </button>
-                {canManage ? (
-                  <Button
-                    size="icon"
-                    variant="secondary"
-                    aria-label="Apagar foto"
-                    className="absolute right-1 top-1 size-7 opacity-90"
-                    disabled={deleteMutation.isPending}
-                    onClick={() => deleteMutation.mutate(photo)}
-                  >
-                    <Trash2 className="size-3.5 text-destructive" />
-                  </Button>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Carregando fotos…</p>
+          ) : photos.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {canManage ? "Você ainda não adicionou fotos." : "Nenhuma foto por aqui ainda."}
+            </p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-8">
+              {photos.map((photo) => (
+                <div key={photo.id} className="space-y-1">
+                  <div className="group relative aspect-square overflow-hidden rounded-xl border border-border">
+                    <button
+                      type="button"
+                      className="size-full"
+                      onClick={() => setZoom(photo)}
+                      aria-label="Ampliar foto"
+                    >
+                      <GalleryImage photo={photo} />
+                    </button>
+                    {canManage ? (
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        aria-label="Apagar foto"
+                        className="absolute right-1 top-1 size-7 opacity-90"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => deleteMutation.mutate(photo)}
+                      >
+                        <Trash2 className="size-3.5 text-destructive" />
+                      </Button>
+                    ) : null}
+                  </div>
+                  <ReactionChips
+                    compact
+                    reactions={reactionsOf(photo.id)}
+                    names={names}
+                    myId={myId}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {zoom ? (
           <Dialog open onOpenChange={() => setZoom(null)}>
-            <DialogContent className="max-w-lg p-2">
+            <DialogContent className="max-w-2xl p-3">
               <DialogHeader className="sr-only">
                 <DialogTitle>Foto ampliada</DialogTitle>
               </DialogHeader>
-              <div className="overflow-hidden rounded-xl">
+              <div className="max-h-[60dvh] overflow-hidden rounded-xl">
                 <GalleryImage photo={zoom} />
               </div>
-              {zoom.caption ? <p className="p-2 text-sm text-muted-foreground">{zoom.caption}</p> : null}
+              {zoom.caption ? <p className="pt-2 text-sm text-muted-foreground">{zoom.caption}</p> : null}
+
+              <div className="flex flex-wrap gap-1 pt-2">
+                {PHOTO_REACTIONS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    aria-label={`Reagir com ${emoji}`}
+                    disabled={reactMutation.isPending}
+                    className="rounded-full px-1 text-xl transition-transform hover:scale-125"
+                    onClick={() => reactMutation.mutate({ photoId: zoom.id, emoji })}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+              <ReactionChips reactions={reactionsOf(zoom.id)} names={names} myId={myId} />
             </DialogContent>
           </Dialog>
         ) : null}

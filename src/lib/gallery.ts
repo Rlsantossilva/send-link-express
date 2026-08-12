@@ -83,3 +83,132 @@ export async function deleteAvatarPhoto(photo: AvatarPhoto) {
   if (error) throw error;
   await supabase.storage.from("avatars").remove([photo.path]);
 }
+
+/* ---------------- Miniatura da foto nova ---------------- */
+
+export type GlowPreview = { photoId: string; path: string; userId: string };
+
+/** Para cada usuário com novidade, a foto mais recente ainda não vista. */
+export async function listGlowingPreviews(): Promise<Record<string, GlowPreview>> {
+  const userId = await requireUserId();
+  const [{ data: photos, error }, { data: views, error: viewsError }] = await Promise.all([
+    supabase
+      .from("avatar_photos")
+      .select("id, user_id, path, created_at")
+      .neq("user_id", userId)
+      .order("created_at", { ascending: false }),
+    supabase.from("avatar_photo_views").select("photo_id").eq("viewer_id", userId),
+  ]);
+  if (error) throw error;
+  if (viewsError) throw viewsError;
+  const seen = new Set((views ?? []).map((view) => view.photo_id));
+  const map: Record<string, GlowPreview> = {};
+  for (const photo of photos ?? []) {
+    if (seen.has(photo.id)) continue;
+    if (map[photo.user_id]) continue;
+    map[photo.user_id] = { photoId: photo.id, path: photo.path, userId: photo.user_id };
+  }
+  return map;
+}
+
+/* ---------------- Reações nas fotos ---------------- */
+
+export type PhotoReaction = {
+  id: string;
+  photo_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+};
+
+export async function listPhotoReactions(photoIds: string[]): Promise<PhotoReaction[]> {
+  if (photoIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("avatar_photo_reactions")
+    .select("id, photo_id, user_id, emoji, created_at")
+    .in("photo_id", photoIds)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as PhotoReaction[];
+}
+
+export async function togglePhotoReaction(photoId: string, emoji: string) {
+  const userId = await requireUserId();
+  const { data: existing, error } = await supabase
+    .from("avatar_photo_reactions")
+    .select("id")
+    .eq("photo_id", photoId)
+    .eq("user_id", userId)
+    .eq("emoji", emoji)
+    .maybeSingle();
+  if (error) throw error;
+  if (existing) {
+    const { error: deleteError } = await supabase
+      .from("avatar_photo_reactions")
+      .delete()
+      .eq("id", existing.id);
+    if (deleteError) throw deleteError;
+    return "removed" as const;
+  }
+  const { error: insertError } = await supabase
+    .from("avatar_photo_reactions")
+    .insert({ photo_id: photoId, user_id: userId, emoji });
+  if (insertError) throw insertError;
+  return "added" as const;
+}
+
+/** Nomes de quem reagiu (para exibir nas notificações e chips). */
+export async function listReactorNames(userIds: string[]): Promise<Record<string, string>> {
+  const unique = [...new Set(userIds)];
+  if (unique.length === 0) return {};
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, display_name, email")
+    .in("id", unique);
+  if (error) return {};
+  const map: Record<string, string> = {};
+  for (const profile of data ?? []) {
+    map[profile.id] = profile.display_name || profile.email || "Alguém";
+  }
+  return map;
+}
+
+export type PhotoReactionAlert = {
+  photoId: string;
+  path: string;
+  total: number;
+  emojis: string[];
+  names: string[];
+  lastAt: string;
+};
+
+/** Reações que outras pessoas deixaram nas MINHAS fotos. */
+export async function listMyPhotoReactionAlerts(): Promise<PhotoReactionAlert[]> {
+  const userId = await requireUserId();
+  const { data: photos, error } = await supabase
+    .from("avatar_photos")
+    .select("id, path")
+    .eq("user_id", userId);
+  if (error) throw error;
+  if (!photos?.length) return [];
+  const reactions = await listPhotoReactions(photos.map((photo) => photo.id));
+  const mine = reactions.filter((reaction) => reaction.user_id !== userId);
+  if (mine.length === 0) return [];
+  const names = await listReactorNames(mine.map((reaction) => reaction.user_id));
+  const grouped = new Map<string, PhotoReaction[]>();
+  for (const reaction of mine) {
+    const list = grouped.get(reaction.photo_id) ?? [];
+    list.push(reaction);
+    grouped.set(reaction.photo_id, list);
+  }
+  return [...grouped.entries()]
+    .map(([photoId, list]) => ({
+      photoId,
+      path: photos.find((photo) => photo.id === photoId)?.path ?? "",
+      total: list.length,
+      emojis: [...new Set(list.map((reaction) => reaction.emoji))],
+      names: [...new Set(list.map((reaction) => names[reaction.user_id] ?? "Alguém"))],
+      lastAt: list[list.length - 1]!.created_at,
+    }))
+    .sort((a, b) => b.lastAt.localeCompare(a.lastAt));
+}

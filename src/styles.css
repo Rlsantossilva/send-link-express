@@ -267,7 +267,7 @@
   }
   100% {
     opacity: 0;
-    transform: translateY(-50%) translateX(24px) scale(0.95) rotate(6deg);
+    transform: translateY(-50%) translateX(44px) scale(1) rotate(6deg);
   }
 }
 
