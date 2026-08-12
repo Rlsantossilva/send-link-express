@@ -84,7 +84,7 @@ export function UserAvatar({
               aria-hidden
               src={url}
               alt=""
-              className="avatar-photo-float pointer-events-none absolute left-1/2 top-0 size-4 rounded-md border border-secondary/70 object-cover shadow-sm"
+              className="avatar-photo-float pointer-events-none absolute left-full top-1/2 ml-1 size-6 rounded-md border border-secondary/70 object-cover shadow-sm"
             />
           ) : null}
         </>
