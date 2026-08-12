@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      avatar_photo_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          photo_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          photo_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          photo_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avatar_photo_reactions_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "avatar_photos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       avatar_photo_views: {
         Row: {
           id: string
