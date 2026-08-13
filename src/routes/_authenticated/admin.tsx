@@ -223,8 +223,8 @@ function AdminPage() {
               Salvar PIN
             </Button>
           </DialogFooter>
-        </DialogFooter>
         </DialogContent>
+
       </Dialog>
     </AppShell>
   );
