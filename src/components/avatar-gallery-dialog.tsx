@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Sparkles, Trash2 } from "lucide-react";
+import { ImagePlus, Sparkles, SmilePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -12,12 +12,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useServerFn } from "@tanstack/react-start";
 import { createSignedUrl, requireUserId } from "@/lib/chat";
+import { resolveDisplayNames } from "@/lib/gallery.functions";
 import {
   deleteAvatarPhoto,
   listAvatarPhotos,
   listPhotoReactions,
-  listReactorNames,
   togglePhotoReaction,
   uploadAvatarPhoto,
   type AvatarPhoto,
@@ -135,9 +136,10 @@ export function AvatarGalleryDialog({
     enabled: open && photos.length > 0,
   });
 
+  const fetchNames = useServerFn(resolveDisplayNames);
   const { data: names = {} } = useQuery({
     queryKey: ["reactor-names", reactions.map((reaction) => reaction.user_id).join(",")],
-    queryFn: () => listReactorNames(reactions.map((reaction) => reaction.user_id)),
+    queryFn: () => fetchNames({ data: { ids: [...new Set(reactions.map((r) => r.user_id))] } }),
     enabled: reactions.length > 0,
   });
 
@@ -279,21 +281,32 @@ export function AvatarGalleryDialog({
               </div>
               {zoom.caption ? <p className="pt-2 text-sm text-muted-foreground">{zoom.caption}</p> : null}
 
-              <div className="flex flex-wrap gap-1 pt-2">
-                {PHOTO_REACTIONS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    aria-label={`Reagir com ${emoji}`}
-                    disabled={reactMutation.isPending}
-                    className="rounded-full px-1 text-xl transition-transform hover:scale-125"
-                    onClick={() => reactMutation.mutate({ photoId: zoom.id, emoji })}
-                  >
-                    {emoji}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2 pt-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2 rounded-full">
+                      <SmilePlus className="size-4 text-secondary" /> Reagir
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-2">
+                    <div className="flex flex-wrap gap-1">
+                      {PHOTO_REACTIONS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          aria-label={`Reagir com ${emoji}`}
+                          disabled={reactMutation.isPending}
+                          className="rounded-full px-1 text-2xl transition-transform hover:scale-125"
+                          onClick={() => reactMutation.mutate({ photoId: zoom.id, emoji })}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <ReactionChips reactions={reactionsOf(zoom.id)} names={names} myId={myId} />
               </div>
-              <ReactionChips reactions={reactionsOf(zoom.id)} names={names} myId={myId} />
             </DialogContent>
           </Dialog>
         ) : null}

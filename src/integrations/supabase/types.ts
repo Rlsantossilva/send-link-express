@@ -464,11 +464,63 @@ export type Database = {
         }
         Relationships: []
       }
+      user_pins: {
+        Row: {
+          created_at: string
+          pin: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          pin: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          pin?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       invite_is_for_me: {
         Args: { _email: string; _invitee: string; _phone: string }
         Returns: boolean
@@ -480,6 +532,7 @@ export type Database = {
       profiles_are_related: { Args: { _other: string }; Returns: boolean }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       invite_status: "pending" | "accepted" | "declined"
       message_kind: "text" | "image" | "video" | "audio"
     }
@@ -609,6 +662,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       invite_status: ["pending", "accepted", "declined"],
       message_kind: ["text", "image", "video", "audio"],
     },

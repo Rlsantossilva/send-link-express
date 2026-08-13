@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessageSquare, Users, UserRound, LogOut, Images } from "lucide-react";
+import { MessageSquare, Users, UserRound, LogOut, Images, ShieldCheck } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile } from "@/lib/chat";
@@ -8,6 +8,8 @@ import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 import { useNotifications } from "@/hooks/use-notifications";
 import { Button } from "@/components/ui/button";
 import { AvatarGalleryDialog } from "@/components/avatar-gallery-dialog";
+import { useServerFn } from "@tanstack/react-start";
+import { amIAdmin } from "@/lib/admin.functions";
 
 const NAV = [
   { to: "/conversas", label: "Conversas", icon: MessageSquare },
@@ -22,6 +24,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   useNotifications();
 
   const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: getMyProfile });
+  const checkAdmin = useServerFn(amIAdmin);
+  const { data: isAdmin } = useQuery({ queryKey: ["am-i-admin"], queryFn: () => checkAdmin(), retry: false });
   const myName = profile?.display_name || profile?.email || "Você";
 
   async function signOut() {
@@ -74,6 +78,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Images className="size-4" />
             <span className="hidden sm:inline">Adicionar fotos</span>
           </Button>
+
+          {isAdmin ? (
+            <Link
+              to="/admin"
+              className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[status=active]:bg-primary data-[status=active]:text-primary-foreground md:mt-2"
+            >
+              <ShieldCheck className="size-4" />
+              <span className="hidden sm:inline">Administração</span>
+            </Link>
+          ) : null}
         </nav>
 
         <Button variant="ghost" size="sm" className="md:mt-auto md:justify-start" onClick={signOut}>
