@@ -83,11 +83,9 @@ function AuthPage() {
     const form = new FormData(event.currentTarget);
     const parsed = signUpSchema.safeParse({
       fullName: String(form.get("fullName") ?? ""),
-      cpf: String(form.get("cpf") ?? ""),
       birthDate: String(form.get("birthDate") ?? ""),
-      phone: String(form.get("phone") ?? ""),
       email: String(form.get("email") ?? ""),
-      password: String(form.get("password") ?? ""),
+      pin: onlyDigits(String(form.get("pin") ?? "")),
     });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
@@ -95,33 +93,22 @@ function AuthPage() {
     }
 
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: {
-          display_name: parsed.data.fullName.split(" ")[0] ?? parsed.data.fullName,
-          full_name: parsed.data.fullName,
-          cpf: parsed.data.cpf,
-          birth_date: parsed.data.birthDate,
-          phone: parsed.data.phone.replace(/[^\d+]/g, ""),
-        },
-      },
-    });
-    setLoading(false);
-
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await createAccount({ data: parsed.data });
+      const { error } = await supabase.auth.signInWithPassword({
+        email: parsed.data.email,
+        password: parsed.data.pin,
+      });
+      if (error) throw new Error("Conta criada. Faça login com seu e-mail e PIN.");
+      toast.success("Conta criada com sucesso!");
+      navigate({ to: "/conversas", replace: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível criar a conta");
+    } finally {
+      setLoading(false);
     }
-    if (!data.session) {
-      setAwaitingConfirm(true);
-      toast.success("Confirme seu e-mail para ativar a conta");
-      return;
-    }
-    navigate({ to: "/conversas", replace: true });
   }
+
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-2">
