@@ -27,20 +27,14 @@ export const Route = createFileRoute("/auth")({
 
 const signUpSchema = z.object({
   fullName: z.string().trim().min(3, "Informe seu nome completo").max(120, "Nome muito longo"),
-  cpf: z
-    .string()
-    .transform(onlyDigits)
-    .refine((value) => value.length === 11, "CPF deve ter 11 dígitos"),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de nascimento"),
-  phone: z
+  email: z.string().trim().email("E-mail inválido").max(255),
+  pin: z
     .string()
     .trim()
-    .min(8, "Telefone inválido")
-    .max(20, "Telefone inválido")
-    .regex(/^[\d+\s()-]+$/, "Telefone inválido"),
-  email: z.string().trim().email("E-mail inválido").max(255),
-  password: z.string().min(8, "A senha precisa ter ao menos 8 caracteres").max(72),
+    .regex(/^\d{6,12}$/, "O PIN deve ter de 6 a 12 dígitos numéricos"),
 });
+
 
 const signInSchema = z.object({
   email: z.string().trim().email("E-mail inválido").max(255),
