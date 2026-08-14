@@ -180,42 +180,33 @@ function AuthPage() {
                   <Label htmlFor="signup-name">Nome completo</Label>
                   <Input id="signup-name" name="fullName" maxLength={120} required />
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-cpf">CPF</Label>
-                    <Input
-                      id="signup-cpf"
-                      name="cpf"
-                      inputMode="numeric"
-                      placeholder="000.000.000-00"
-                      maxLength={14}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-birth">Data de nascimento</Label>
-                    <Input id="signup-birth" name="birthDate" type="date" required />
-                  </div>
-                </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="signup-phone">Telefone</Label>
-                  <Input id="signup-phone" name="phone" inputMode="tel" placeholder="+55 11 99999-0000" required />
+                  <Label htmlFor="signup-birth">Data de nascimento</Label>
+                  <Input id="signup-birth" name="birthDate" type="date" required />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="signup-email">E-mail</Label>
                   <Input id="signup-email" name="email" type="email" autoComplete="email" required />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="signup-password">Senha</Label>
+                  <Label htmlFor="signup-pin">PIN de acesso (mínimo 6 dígitos)</Label>
                   <Input
-                    id="signup-password"
-                    name="password"
+                    id="signup-pin"
+                    name="pin"
                     type="password"
+                    inputMode="numeric"
                     autoComplete="new-password"
-                    minLength={8}
+                    placeholder="••••••"
+                    pattern="\d{6,12}"
+                    minLength={6}
+                    maxLength={12}
                     required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Use apenas números. Esse PIN será sua senha de acesso.
+                  </p>
                 </div>
+
                 <Button type="submit" className="w-full" disabled={loading}>
                   Criar conta
                 </Button>
