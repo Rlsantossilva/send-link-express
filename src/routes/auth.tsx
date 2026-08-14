@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { registerWithPin } from "@/lib/signup.functions";
 import { cpfLoginEmail, onlyDigits } from "@/lib/cpf";
 
 import { Button } from "@/components/ui/button";
@@ -44,7 +46,7 @@ const signInSchema = z.object({
 function AuthPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [awaitingConfirm, setAwaitingConfirm] = useState(false);
+  const createAccount = useServerFn(registerWithPin);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
@@ -132,11 +134,6 @@ function AuthPage() {
           <h2 className="font-display text-2xl font-bold">Bem-vindo</h2>
           <p className="mt-1 text-sm text-muted-foreground">Entre ou crie sua conta para começar.</p>
 
-          {awaitingConfirm ? (
-            <div className="mt-6 rounded-2xl border border-secondary bg-accent p-4 text-sm text-accent-foreground">
-              Enviamos um link de confirmação para o seu e-mail. Depois de confirmar, volte aqui e faça login.
-            </div>
-          ) : null}
 
           <Tabs defaultValue="entrar" className="mt-6">
             <TabsList className="w-full">
