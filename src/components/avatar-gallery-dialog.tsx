@@ -279,7 +279,7 @@ export function AvatarGalleryDialog({
 
         {zoom ? (
           <Dialog open onOpenChange={() => setZoom(null)}>
-            <DialogContent showCloseButton={false} className="max-w-2xl p-3">
+            <DialogContent className="max-w-2xl p-3 [&>button]:hidden">
               <DialogHeader className="sr-only">
                 <DialogTitle>Foto ampliada</DialogTitle>
               </DialogHeader>
