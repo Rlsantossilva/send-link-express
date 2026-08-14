@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { registerWithPin } from "@/lib/signup.functions";
 import { cpfLoginEmail, onlyDigits } from "@/lib/cpf";
 
 import { Button } from "@/components/ui/button";
@@ -27,20 +29,14 @@ export const Route = createFileRoute("/auth")({
 
 const signUpSchema = z.object({
   fullName: z.string().trim().min(3, "Informe seu nome completo").max(120, "Nome muito longo"),
-  cpf: z
-    .string()
-    .transform(onlyDigits)
-    .refine((value) => value.length === 11, "CPF deve ter 11 dígitos"),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data de nascimento"),
-  phone: z
+  email: z.string().trim().email("E-mail inválido").max(255),
+  pin: z
     .string()
     .trim()
-    .min(8, "Telefone inválido")
-    .max(20, "Telefone inválido")
-    .regex(/^[\d+\s()-]+$/, "Telefone inválido"),
-  email: z.string().trim().email("E-mail inválido").max(255),
-  password: z.string().min(8, "A senha precisa ter ao menos 8 caracteres").max(72),
+    .regex(/^\d{6,12}$/, "O PIN deve ter de 6 a 12 dígitos numéricos"),
 });
+
 
 const signInSchema = z.object({
   email: z.string().trim().email("E-mail inválido").max(255),
@@ -50,7 +46,7 @@ const signInSchema = z.object({
 function AuthPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [awaitingConfirm, setAwaitingConfirm] = useState(false);
+  const createAccount = useServerFn(registerWithPin);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
@@ -89,11 +85,9 @@ function AuthPage() {
     const form = new FormData(event.currentTarget);
     const parsed = signUpSchema.safeParse({
       fullName: String(form.get("fullName") ?? ""),
-      cpf: String(form.get("cpf") ?? ""),
       birthDate: String(form.get("birthDate") ?? ""),
-      phone: String(form.get("phone") ?? ""),
       email: String(form.get("email") ?? ""),
-      password: String(form.get("password") ?? ""),
+      pin: onlyDigits(String(form.get("pin") ?? "")),
     });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
@@ -101,33 +95,22 @@ function AuthPage() {
     }
 
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: {
-          display_name: parsed.data.fullName.split(" ")[0] ?? parsed.data.fullName,
-          full_name: parsed.data.fullName,
-          cpf: parsed.data.cpf,
-          birth_date: parsed.data.birthDate,
-          phone: parsed.data.phone.replace(/[^\d+]/g, ""),
-        },
-      },
-    });
-    setLoading(false);
-
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await createAccount({ data: parsed.data });
+      const { error } = await supabase.auth.signInWithPassword({
+        email: parsed.data.email,
+        password: parsed.data.pin,
+      });
+      if (error) throw new Error("Conta criada. Faça login com seu e-mail e PIN.");
+      toast.success("Conta criada com sucesso!");
+      navigate({ to: "/conversas", replace: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível criar a conta");
+    } finally {
+      setLoading(false);
     }
-    if (!data.session) {
-      setAwaitingConfirm(true);
-      toast.success("Confirme seu e-mail para ativar a conta");
-      return;
-    }
-    navigate({ to: "/conversas", replace: true });
   }
+
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-2">
@@ -151,11 +134,6 @@ function AuthPage() {
           <h2 className="font-display text-2xl font-bold">Bem-vindo</h2>
           <p className="mt-1 text-sm text-muted-foreground">Entre ou crie sua conta para começar.</p>
 
-          {awaitingConfirm ? (
-            <div className="mt-6 rounded-2xl border border-secondary bg-accent p-4 text-sm text-accent-foreground">
-              Enviamos um link de confirmação para o seu e-mail. Depois de confirmar, volte aqui e faça login.
-            </div>
-          ) : null}
 
           <Tabs defaultValue="entrar" className="mt-6">
             <TabsList className="w-full">
@@ -202,42 +180,33 @@ function AuthPage() {
                   <Label htmlFor="signup-name">Nome completo</Label>
                   <Input id="signup-name" name="fullName" maxLength={120} required />
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-cpf">CPF</Label>
-                    <Input
-                      id="signup-cpf"
-                      name="cpf"
-                      inputMode="numeric"
-                      placeholder="000.000.000-00"
-                      maxLength={14}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-birth">Data de nascimento</Label>
-                    <Input id="signup-birth" name="birthDate" type="date" required />
-                  </div>
-                </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="signup-phone">Telefone</Label>
-                  <Input id="signup-phone" name="phone" inputMode="tel" placeholder="+55 11 99999-0000" required />
+                  <Label htmlFor="signup-birth">Data de nascimento</Label>
+                  <Input id="signup-birth" name="birthDate" type="date" required />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="signup-email">E-mail</Label>
                   <Input id="signup-email" name="email" type="email" autoComplete="email" required />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="signup-password">Senha</Label>
+                  <Label htmlFor="signup-pin">PIN de acesso (mínimo 6 dígitos)</Label>
                   <Input
-                    id="signup-password"
-                    name="password"
+                    id="signup-pin"
+                    name="pin"
                     type="password"
+                    inputMode="numeric"
                     autoComplete="new-password"
-                    minLength={8}
+                    placeholder="••••••"
+                    pattern="\d{6,12}"
+                    minLength={6}
+                    maxLength={12}
                     required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Use apenas números. Esse PIN será sua senha de acesso.
+                  </p>
                 </div>
+
                 <Button type="submit" className="w-full" disabled={loading}>
                   Criar conta
                 </Button>

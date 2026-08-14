@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Sparkles, SmilePlus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImagePlus, Sparkles, SmilePlus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -185,6 +185,13 @@ export function AvatarGalleryDialog({
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const photoAt = (step: number) => {
+    if (!zoom || photos.length === 0) return zoom;
+    const index = photos.findIndex((photo) => photo.id === zoom.id);
+    if (index < 0) return zoom;
+    return photos[(index + step + photos.length) % photos.length] ?? zoom;
+  };
+
   const reactionsOf = (photoId: string) =>
     reactions.filter((reaction) => reaction.photo_id === photoId);
 
@@ -272,12 +279,45 @@ export function AvatarGalleryDialog({
 
         {zoom ? (
           <Dialog open onOpenChange={() => setZoom(null)}>
-            <DialogContent className="max-w-2xl p-3">
+            <DialogContent className="max-w-2xl p-3 [&>button]:hidden">
               <DialogHeader className="sr-only">
                 <DialogTitle>Foto ampliada</DialogTitle>
               </DialogHeader>
-              <div className="max-h-[60dvh] overflow-hidden rounded-xl">
+              <div className="relative max-h-[60dvh] overflow-hidden rounded-xl">
                 <GalleryImage photo={zoom} />
+
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  aria-label="Fechar foto"
+                  className="absolute right-2 top-2 size-10 rounded-full border border-border shadow-lg"
+                  onClick={() => setZoom(null)}
+                >
+                  <X className="size-5" />
+                </Button>
+
+                {photos.length > 1 ? (
+                  <>
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      aria-label="Foto anterior"
+                      className="absolute left-2 top-1/2 size-10 -translate-y-1/2 rounded-full border border-border shadow-lg"
+                      onClick={() => setZoom(photoAt(-1))}
+                    >
+                      <ChevronLeft className="size-5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      aria-label="Próxima foto"
+                      className="absolute right-2 top-1/2 size-10 -translate-y-1/2 rounded-full border border-border shadow-lg"
+                      onClick={() => setZoom(photoAt(1))}
+                    >
+                      <ChevronRight className="size-5" />
+                    </Button>
+                  </>
+                ) : null}
               </div>
               {zoom.caption ? <p className="pt-2 text-sm text-muted-foreground">{zoom.caption}</p> : null}
 
