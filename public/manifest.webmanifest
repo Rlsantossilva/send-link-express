@@ -1,0 +1,14 @@
+{
+  "name": "Zap Tri — mensagens",
+  "short_name": "Zap Tri",
+  "description": "Converse em tempo real com textos, fotos, vídeos e áudios.",
+  "start_url": "/conversas",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "icons": [
+    { "src": "/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
