@@ -5,15 +5,12 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export type AdminUser = {
   id: string;
   display_name: string;
-  full_name: string | null;
   email: string | null;
   phone: string | null;
-  cpf: string | null;
-  birth_date: string | null;
+  /** Only the last 3 digits are ever sent to the browser. */
+  cpf_masked: string | null;
   created_at: string;
   last_sign_in_at: string | null;
-  pin: string | null;
-  pin_updated_at: string | null;
 };
 
 async function assertAdmin(userId: string) {
@@ -43,43 +40,49 @@ export const amIAdmin = createServerFn({ method: "GET" })
     return Boolean(data);
   });
 
-/** Lista todos os usuários do app (novos e antigos) com o PIN registrado. */
+function maskCpf(value: string | null): string | null {
+  if (!value) return null;
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 3) return "•••";
+  return `•••.•••.•••-${digits.slice(-3)}`;
+}
+
+/** Lista todos os usuários do app (novos e antigos), sem expor PII completa. */
 export const listAppUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<AdminUser[]> => {
     const supabaseAdmin = await assertAdmin(context.userId);
 
-    const [{ data: profiles, error }, { data: pins }, authList] = await Promise.all([
+    const [{ data: profiles, error }, authList] = await Promise.all([
       supabaseAdmin
         .from("profiles")
-        .select("id, display_name, full_name, email, phone, cpf, birth_date, created_at")
+        .select("id, display_name, email, phone, cpf, created_at")
         .order("created_at", { ascending: false }),
-      supabaseAdmin.from("user_pins").select("user_id, pin, updated_at"),
       supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     ]);
     if (error) throw new Error("Não foi possível carregar os usuários");
 
-    const pinMap = new Map((pins ?? []).map((row) => [row.user_id, row]));
     const signIn = new Map(
       (authList.data?.users ?? []).map((user) => [user.id, user.last_sign_in_at ?? null]),
     );
 
+    console.info(`[admin-audit] ${context.userId} listou os usuários do app`);
+
     return (profiles ?? []).map((profile) => ({
       id: profile.id,
       display_name: profile.display_name,
-      full_name: profile.full_name,
       email: profile.email,
       phone: profile.phone,
-      cpf: profile.cpf,
-      birth_date: profile.birth_date,
+      cpf_masked: maskCpf(profile.cpf),
       created_at: profile.created_at,
       last_sign_in_at: signIn.get(profile.id) ?? null,
-      pin: pinMap.get(profile.id)?.pin ?? null,
-      pin_updated_at: pinMap.get(profile.id)?.updated_at ?? null,
     }));
   });
 
-/** Define/atualiza o PIN (senha) de um usuário e guarda para consulta do admin. */
+/**
+ * Redefine o PIN (senha) de um usuário. O valor nunca é armazenado nem exibido:
+ * fica apenas no cofre de senhas criptografadas da autenticação.
+ */
 export const setUserPin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
@@ -102,13 +105,7 @@ export const setUserPin = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
 
-    const { error: pinError } = await supabaseAdmin
-      .from("user_pins")
-      .upsert(
-        { user_id: data.userId, pin: data.pin, updated_by: context.userId, updated_at: new Date().toISOString() },
-        { onConflict: "user_id" },
-      );
-    if (pinError) throw new Error("PIN alterado, mas não foi possível registrá-lo");
+    console.info(`[admin-audit] ${context.userId} redefiniu o PIN de ${data.userId}`);
 
     return { ok: true as const };
   });
