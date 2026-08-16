@@ -34,7 +34,6 @@ import { MessageItem } from "@/components/chat/message-item";
 import { GroupSettingsDialog } from "@/components/chat/group-settings-dialog";
 import { NewConversationDialog, NewGroupDialog } from "@/components/chat/new-conversation-dialog";
 import { PhotoReactionAlerts } from "@/components/photo-reaction-alerts";
-import { EnableNotificationsBanner } from "@/components/enable-notifications-banner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
