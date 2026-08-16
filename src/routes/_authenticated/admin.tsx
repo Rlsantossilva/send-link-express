@@ -56,11 +56,12 @@ function AdminPage() {
     const needle = term.trim().toLowerCase();
     const list = users.filter((user) =>
       needle
-        ? [user.display_name, user.full_name, user.email, user.phone, user.cpf]
+        ? [user.display_name, user.email, user.phone]
             .filter(Boolean)
             .some((field) => String(field).toLowerCase().includes(needle))
         : true,
     );
+
     return [...list].sort((a, b) =>
       order === "new"
         ? b.created_at.localeCompare(a.created_at)
