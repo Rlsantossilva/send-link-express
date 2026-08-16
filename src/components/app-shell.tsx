@@ -8,6 +8,7 @@ import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 import { useNotifications } from "@/hooks/use-notifications";
 import { Button } from "@/components/ui/button";
 import { AvatarGalleryDialog } from "@/components/avatar-gallery-dialog";
+import { EnableNotificationsBanner } from "@/components/enable-notifications-banner";
 import { useServerFn } from "@tanstack/react-start";
 import { amIAdmin } from "@/lib/admin.functions";
 
