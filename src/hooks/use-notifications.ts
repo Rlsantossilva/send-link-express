@@ -18,9 +18,31 @@ export function useNotifications() {
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
+  // Mantém o service worker sempre ativo: ele continua rodando em segundo plano
+  // (recebendo avisos com a tela bloqueada) até a aba/app do navegador ser fechada.
+  useEffect(() => {
+    void registerPushWorker();
+  }, []);
+
+  // Se o aparelho já tem permissão, garante que a inscrição continue válida
+  // (o navegador pode expirá-la) sem precisar de novo toque do usuário.
   useEffect(() => {
     if (!settings?.push_enabled) return;
-    void registerPushWorker();
+    let cancelled = false;
+    const ensure = () => {
+      if (cancelled || typeof Notification === "undefined") return;
+      if (Notification.permission !== "granted") return;
+      void ensurePushSubscription();
+    };
+    ensure();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") ensure();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [settings?.push_enabled]);
 
   // Sons quando o app está aberto (o service worker cuida do resto).
