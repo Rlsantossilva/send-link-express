@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Eye, EyeOff, KeyRound, Search, ShieldCheck } from "lucide-react";
+import { KeyRound, Search, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
@@ -42,7 +42,7 @@ function AdminPage() {
   const savePin = useServerFn(setUserPin);
   const [term, setTerm] = useState("");
   const [order, setOrder] = useState<"new" | "old">("new");
-  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [pin, setPin] = useState("");
 
@@ -168,8 +168,9 @@ function AdminPage() {
             )}
 
             <p className="text-xs text-muted-foreground">
-              O PIN só fica visível aqui depois de ser definido neste painel — senhas criadas pelo próprio
-              usuário ficam guardadas criptografadas e não podem ser lidas.
+              Por segurança, o PIN nunca é exibido: ele fica guardado apenas de forma criptografada. Você
+              pode definir um novo PIN e informá-lo ao usuário.
+
             </p>
           </>
         )}
