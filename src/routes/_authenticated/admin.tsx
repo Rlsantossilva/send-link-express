@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Eye, EyeOff, KeyRound, Search, ShieldCheck } from "lucide-react";
+import { KeyRound, Search, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
@@ -42,7 +42,7 @@ function AdminPage() {
   const savePin = useServerFn(setUserPin);
   const [term, setTerm] = useState("");
   const [order, setOrder] = useState<"new" | "old">("new");
-  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [pin, setPin] = useState("");
 
@@ -56,11 +56,12 @@ function AdminPage() {
     const needle = term.trim().toLowerCase();
     const list = users.filter((user) =>
       needle
-        ? [user.display_name, user.full_name, user.email, user.phone, user.cpf]
+        ? [user.display_name, user.email, user.phone]
             .filter(Boolean)
             .some((field) => String(field).toLowerCase().includes(needle))
         : true,
     );
+
     return [...list].sort((a, b) =>
       order === "new"
         ? b.created_at.localeCompare(a.created_at)
@@ -102,7 +103,7 @@ function AdminPage() {
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   className="pl-9"
-                  placeholder="Buscar por nome, e-mail, telefone ou CPF"
+                  placeholder="Buscar por nome, e-mail ou telefone"
                   value={term}
                   onChange={(event) => setTerm(event.target.value)}
                 />
@@ -126,10 +127,9 @@ function AdminPage() {
                     <tr>
                       <th className="px-3 py-2">Usuário</th>
                       <th className="px-3 py-2">Contato</th>
-                      <th className="px-3 py-2">CPF / Nascimento</th>
+                      <th className="px-3 py-2">CPF (parcial)</th>
                       <th className="px-3 py-2">Cadastro</th>
                       <th className="px-3 py-2">Último acesso</th>
-                      <th className="px-3 py-2">PIN</th>
                       <th className="px-3 py-2" />
                     </tr>
                   </thead>
@@ -138,34 +138,15 @@ function AdminPage() {
                       <tr key={user.id} className="border-t border-border align-top">
                         <td className="px-3 py-2">
                           <p className="font-semibold">{user.display_name || "—"}</p>
-                          <p className="text-xs text-muted-foreground">{user.full_name ?? "—"}</p>
                         </td>
                         <td className="px-3 py-2">
                           <p>{user.email ?? "—"}</p>
                           <p className="text-xs text-muted-foreground">{user.phone ?? "—"}</p>
                         </td>
-                        <td className="px-3 py-2">
-                          <p>{user.cpf ?? "—"}</p>
-                          <p className="text-xs text-muted-foreground">{user.birth_date ?? "—"}</p>
-                        </td>
+                        <td className="px-3 py-2 font-mono text-xs">{user.cpf_masked ?? "—"}</td>
                         <td className="px-3 py-2 text-xs">{formatDate(user.created_at)}</td>
                         <td className="px-3 py-2 text-xs">{formatDate(user.last_sign_in_at)}</td>
-                        <td className="px-3 py-2">
-                          {user.pin ? (
-                            <button
-                              type="button"
-                              className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 font-mono text-xs"
-                              onClick={() =>
-                                setRevealed((current) => ({ ...current, [user.id]: !current[user.id] }))
-                              }
-                            >
-                              {revealed[user.id] ? user.pin : "••••••••"}
-                              {revealed[user.id] ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
-                            </button>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">não registrado</span>
-                          )}
-                        </td>
+
                         <td className="px-3 py-2 text-right">
                           <Button
                             size="sm"
@@ -187,8 +168,9 @@ function AdminPage() {
             )}
 
             <p className="text-xs text-muted-foreground">
-              O PIN só fica visível aqui depois de ser definido neste painel — senhas criadas pelo próprio
-              usuário ficam guardadas criptografadas e não podem ser lidas.
+              Por segurança, o PIN nunca é exibido: ele fica guardado apenas de forma criptografada. Você
+              pode definir um novo PIN e informá-lo ao usuário.
+
             </p>
           </>
         )}

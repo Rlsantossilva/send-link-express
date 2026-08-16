@@ -26,10 +26,13 @@ export const lookupProfile = createServerFn({ method: "POST" })
     const isEmail = value.includes("@");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // Escape LIKE metacharacters so the email lookup stays an exact match.
+    const escaped = value.replace(/[\\%_]/g, (char) => `\\${char}`);
     const query = supabaseAdmin.from("profiles").select("id, display_name, avatar_url, status_text");
     const { data: rows, error } = isEmail
-      ? await query.ilike("email", value).limit(1)
+      ? await query.ilike("email", escaped).limit(1)
       : await query.eq("phone", value.replace(/[^\d+]/g, "")).limit(1);
+
 
     if (error) {
       console.error("[lookupProfile]", error);

@@ -40,14 +40,6 @@ export const registerWithPin = createServerFn({ method: "POST" })
       );
     }
 
-    await supabaseAdmin.from("user_pins").upsert(
-      {
-        user_id: created.user.id,
-        pin: data.pin,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" },
-    );
-
     return { ok: true };
+
   });
