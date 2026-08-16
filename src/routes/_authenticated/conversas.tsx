@@ -264,7 +264,7 @@ function ConversationsPage() {
             </button>
           ) : null}
 
-          <EnableNotificationsBanner />
+          
 
           <PhotoReactionAlerts />
 
