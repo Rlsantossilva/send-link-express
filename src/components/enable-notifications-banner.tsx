@@ -86,7 +86,7 @@ export function EnableNotificationsBanner() {
   if (!needsInstall && !pushSupported()) return null;
 
   const hide = () => {
-    window.localStorage.setItem(DISMISS_KEY, "1");
+    window.sessionStorage.setItem(DISMISS_KEY, "1");
     setDismissed(true);
   };
 
