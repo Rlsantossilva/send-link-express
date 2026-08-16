@@ -103,7 +103,7 @@ function AdminPage() {
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   className="pl-9"
-                  placeholder="Buscar por nome, e-mail, telefone ou CPF"
+                  placeholder="Buscar por nome, e-mail ou telefone"
                   value={term}
                   onChange={(event) => setTerm(event.target.value)}
                 />
