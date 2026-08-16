@@ -127,10 +127,9 @@ function AdminPage() {
                     <tr>
                       <th className="px-3 py-2">Usuário</th>
                       <th className="px-3 py-2">Contato</th>
-                      <th className="px-3 py-2">CPF / Nascimento</th>
+                      <th className="px-3 py-2">CPF (parcial)</th>
                       <th className="px-3 py-2">Cadastro</th>
                       <th className="px-3 py-2">Último acesso</th>
-                      <th className="px-3 py-2">PIN</th>
                       <th className="px-3 py-2" />
                     </tr>
                   </thead>
@@ -139,34 +138,15 @@ function AdminPage() {
                       <tr key={user.id} className="border-t border-border align-top">
                         <td className="px-3 py-2">
                           <p className="font-semibold">{user.display_name || "—"}</p>
-                          <p className="text-xs text-muted-foreground">{user.full_name ?? "—"}</p>
                         </td>
                         <td className="px-3 py-2">
                           <p>{user.email ?? "—"}</p>
                           <p className="text-xs text-muted-foreground">{user.phone ?? "—"}</p>
                         </td>
-                        <td className="px-3 py-2">
-                          <p>{user.cpf ?? "—"}</p>
-                          <p className="text-xs text-muted-foreground">{user.birth_date ?? "—"}</p>
-                        </td>
+                        <td className="px-3 py-2 font-mono text-xs">{user.cpf_masked ?? "—"}</td>
                         <td className="px-3 py-2 text-xs">{formatDate(user.created_at)}</td>
                         <td className="px-3 py-2 text-xs">{formatDate(user.last_sign_in_at)}</td>
-                        <td className="px-3 py-2">
-                          {user.pin ? (
-                            <button
-                              type="button"
-                              className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 font-mono text-xs"
-                              onClick={() =>
-                                setRevealed((current) => ({ ...current, [user.id]: !current[user.id] }))
-                              }
-                            >
-                              {revealed[user.id] ? user.pin : "••••••••"}
-                              {revealed[user.id] ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
-                            </button>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">não registrado</span>
-                          )}
-                        </td>
+
                         <td className="px-3 py-2 text-right">
                           <Button
                             size="sm"
