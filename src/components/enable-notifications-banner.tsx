@@ -40,29 +40,12 @@ export function EnableNotificationsBanner() {
     queryKey: ["notification-settings"],
     queryFn: getNotificationSettings,
     staleTime: 30_000,
-    retry: false,
   });
-  const [subscribedHere, setSubscribedHere] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Dispensa vale apenas para a sessão atual: o aviso volta a aparecer depois.
-    setDismissed(window.sessionStorage.getItem(DISMISS_KEY) === "1");
+    setDismissed(window.localStorage.getItem(DISMISS_KEY) === "1");
     setNeedsInstall(isIos() && !isStandalone());
     setReady(true);
-
-    let active = true;
-    void (async () => {
-      if (!pushSupported()) {
-        if (active) setSubscribedHere(false);
-        return;
-      }
-      const registration = await navigator.serviceWorker.getRegistration("/push-sw.js");
-      const subscription = await registration?.pushManager.getSubscription();
-      if (active) setSubscribedHere(Notification.permission === "granted" && Boolean(subscription));
-    })();
-    return () => {
-      active = false;
-    };
   }, []);
 
   const enable = useMutation({
@@ -71,7 +54,6 @@ export function EnableNotificationsBanner() {
       await enablePushOnThisDevice();
     },
     onSuccess: async () => {
-      setSubscribedHere(true);
       await queryClient.invalidateQueries({ queryKey: ["notification-settings"] });
       const fresh = await getNotificationSettings();
       playSoundUrl(await resolveSoundUrl(fresh, "message"));
@@ -81,12 +63,11 @@ export function EnableNotificationsBanner() {
   });
 
   if (!ready || dismissed) return null;
-  // Só esconde quando este aparelho já está realmente inscrito e ligado.
-  if (settings?.push_enabled && subscribedHere) return null;
+  if (settings?.push_enabled) return null;
   if (!needsInstall && !pushSupported()) return null;
 
   const hide = () => {
-    window.sessionStorage.setItem(DISMISS_KEY, "1");
+    window.localStorage.setItem(DISMISS_KEY, "1");
     setDismissed(true);
   };
 
