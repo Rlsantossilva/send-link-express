@@ -136,7 +136,29 @@ export async function resolveSoundUrl(
   return builtinSoundUrl(soundId) ?? builtinSoundUrl("classico");
 }
 
+/** Destrava o áudio no celular: precisa acontecer dentro de um toque do usuário. */
+export function unlockAudio() {
+  if (typeof window === "undefined") return;
+  try {
+    const AudioCtx =
+      window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      const source = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      source.connect(gain).connect(ctx.destination);
+      source.start();
+      source.stop(ctx.currentTime + 0.02);
+      void ctx.resume();
+    }
+  } catch {
+    /* alguns navegadores bloqueiam áudio antes do primeiro toque */
+  }
+}
+
 export function playSoundUrl(url: string | null) {
+
   if (!url || typeof window === "undefined") return;
   try {
     const audio = new Audio(url);
