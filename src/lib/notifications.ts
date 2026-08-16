@@ -68,17 +68,9 @@ export async function registerPushWorker(): Promise<ServiceWorkerRegistration | 
   return navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
 }
 
-/** Pede permissão do dispositivo (notificações + som) e inscreve este aparelho. */
-export async function enablePushOnThisDevice(): Promise<void> {
-  if (!pushSupported()) {
-    throw new Error("Este navegador não suporta notificações push");
-  }
-
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") {
-    throw new Error("Permissão de notificações negada nas configurações do navegador");
-  }
-
+/** Garante que este aparelho tenha uma inscrição push válida salva no backend. */
+export async function ensurePushSubscription(): Promise<void> {
+  if (!pushSupported()) return;
   const registration = (await registerPushWorker()) ?? (await navigator.serviceWorker.ready);
   await navigator.serviceWorker.ready;
 
@@ -103,7 +95,20 @@ export async function enablePushOnThisDevice(): Promise<void> {
       userAgent: navigator.userAgent.slice(0, 300),
     },
   });
+}
 
+/** Pede permissão do dispositivo (notificações + som) e inscreve este aparelho. */
+export async function enablePushOnThisDevice(): Promise<void> {
+  if (!pushSupported()) {
+    throw new Error("Este navegador não suporta notificações push");
+  }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    throw new Error("Permissão de notificações negada nas configurações do navegador");
+  }
+
+  await ensurePushSubscription();
   await saveNotificationSettings({ push_enabled: true });
 }
 

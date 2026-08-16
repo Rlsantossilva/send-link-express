@@ -8,6 +8,7 @@ import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 import { useNotifications } from "@/hooks/use-notifications";
 import { Button } from "@/components/ui/button";
 import { AvatarGalleryDialog } from "@/components/avatar-gallery-dialog";
+import { EnableNotificationsBanner } from "@/components/enable-notifications-banner";
 import { useServerFn } from "@tanstack/react-start";
 import { amIAdmin } from "@/lib/admin.functions";
 
@@ -106,7 +107,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         />
       ) : null}
 
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</main>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <EnableNotificationsBanner />
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">{children}</main>
+      </div>
     </div>
   );
 }
