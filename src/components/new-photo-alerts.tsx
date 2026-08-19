@@ -64,6 +64,7 @@ export function NewPhotoAlerts() {
       {openOwner ? (
         <AvatarGalleryDialog
           ownerId={openOwner.ownerId}
+          canManage={false}
           initialPhotoId={openOwner.photoId}
           open
           onOpenChange={(value) => {
