@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, BellOff, Play, Upload } from "lucide-react";
+import { Bell, BellOff, Play, Radio, Upload } from "lucide-react";
 import { toast } from "sonner";
 import {
   BUILTIN_SOUNDS,
   CUSTOM_SOUND_ID,
+  backgroundModeEnabled,
   disablePushOnThisDevice,
+  disableBackgroundMode,
+  enableBackgroundMode,
   enablePushOnThisDevice,
   getNotificationSettings,
   playSoundUrl,

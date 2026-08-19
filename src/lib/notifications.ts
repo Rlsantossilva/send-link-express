@@ -167,7 +167,7 @@ export function startBackgroundAudio() {
     }
 
     const resume = () => {
-      if (keepAlive?.paused) void keepAlive.play().catch(() => undefined);
+      if (!stopped && keepAlive?.paused) void keepAlive.play().catch(() => undefined);
     };
     document.addEventListener("visibilitychange", resume);
     window.addEventListener("focus", resume);
@@ -197,6 +197,51 @@ export function unlockAudio() {
     /* alguns navegadores bloqueiam áudio antes do primeiro toque */
   }
   startBackgroundAudio();
+}
+
+const BACKGROUND_KEY = "zaptri-background-audio";
+let stopped = false;
+let wakeLockRef: { release: () => Promise<void> } | null = null;
+
+/** Mantém o áudio (e a tela, quando possível) ativos para os avisos tocarem em segundo plano. */
+export async function enableBackgroundMode(): Promise<void> {
+  if (typeof window === "undefined") return;
+  stopped = false;
+  unlockAudio();
+
+  try {
+    const wl = (
+      navigator as Navigator & {
+        wakeLock?: { request: (type: "screen") => Promise<{ release: () => Promise<void> }> };
+      }
+    ).wakeLock;
+    if (wl) wakeLockRef = await wl.request("screen").catch(() => null);
+  } catch {
+    /* alguns navegadores não suportam wake lock */
+  }
+
+  try {
+    await keepAlive?.play();
+  } catch {
+    throw new Error("Toque na tela e tente novamente para liberar o som em segundo plano");
+  }
+
+  window.localStorage.setItem(BACKGROUND_KEY, "1");
+}
+
+export function backgroundModeEnabled() {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(BACKGROUND_KEY) === "1";
+}
+
+export function disableBackgroundMode() {
+  if (typeof window === "undefined") return;
+  stopped = true;
+  window.localStorage.removeItem(BACKGROUND_KEY);
+  keepAlive?.pause();
+  void wakeLockRef?.release().catch(() => undefined);
+  wakeLockRef = null;
+  if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
 }
 
 export function playSoundUrl(url: string | null) {
