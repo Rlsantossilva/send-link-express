@@ -2,7 +2,13 @@ import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { getNotificationSettings, playSoundUrl, registerPushWorker, resolveSoundUrl } from "@/lib/notifications";
+import {
+  getNotificationSettings,
+  playSoundUrl,
+  registerPushWorker,
+  resolveSoundUrl,
+  startBackgroundAudio,
+} from "@/lib/notifications";
 
 /**
  * Toca o som escolhido e mostra a notificação quando chegam mensagens novas
@@ -22,6 +28,17 @@ export function useNotifications() {
     if (!settings?.push_enabled) return;
     void registerPushWorker();
   }, [settings?.push_enabled]);
+
+  // Mantém o som funcionando com o app em segundo plano (após o 1º toque na tela).
+  useEffect(() => {
+    const start = () => startBackgroundAudio();
+    window.addEventListener("pointerdown", start, { once: true });
+    window.addEventListener("keydown", start, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", start);
+      window.removeEventListener("keydown", start);
+    };
+  }, []);
 
   // Sons quando o app está aberto (o service worker cuida do resto).
   useEffect(() => {
@@ -82,7 +99,13 @@ export function useNotifications() {
         return;
       }
       if (data?.type === "zaptri-navigate" && data.url) {
-        void navigate({ to: data.url });
+        const [path, query] = data.url.split("?");
+        const conversationId = new URLSearchParams(query ?? "").get("c");
+        void navigate(
+          conversationId
+            ? { to: "/conversas", search: { c: conversationId } }
+            : { to: (path || "/conversas") as "/conversas", search: {} },
+        );
       }
     };
 

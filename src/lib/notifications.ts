@@ -136,6 +136,47 @@ export async function resolveSoundUrl(
   return builtinSoundUrl(soundId) ?? builtinSoundUrl("classico");
 }
 
+/** Silêncio curto em WAV — mantém a sessão de áudio viva em segundo plano. */
+const SILENCE_WAV =
+  "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQAAAAA=";
+
+let keepAlive: HTMLAudioElement | null = null;
+
+/**
+ * Mantém o app "tocando" em segundo plano com um áudio silencioso em loop.
+ * Assim o navegador não suspende a aba e os sons de aviso continuam audíveis
+ * com a tela bloqueada ou o app minimizado.
+ */
+export function startBackgroundAudio() {
+  if (typeof window === "undefined") return;
+  try {
+    if (!keepAlive) {
+      keepAlive = new Audio(SILENCE_WAV);
+      keepAlive.loop = true;
+      keepAlive.volume = 0.0001;
+      keepAlive.setAttribute("playsinline", "");
+    }
+    void keepAlive.play().catch(() => undefined);
+
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: "Zap Tri",
+        artist: "Avisos de mensagens",
+      });
+      navigator.mediaSession.playbackState = "playing";
+    }
+
+    const resume = () => {
+      if (keepAlive?.paused) void keepAlive.play().catch(() => undefined);
+    };
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("focus", resume);
+    keepAlive.addEventListener("pause", resume);
+  } catch {
+    /* alguns navegadores só permitem áudio após um toque */
+  }
+}
+
 /** Destrava o áudio no celular: precisa acontecer dentro de um toque do usuário. */
 export function unlockAudio() {
   if (typeof window === "undefined") return;
@@ -155,6 +196,7 @@ export function unlockAudio() {
   } catch {
     /* alguns navegadores bloqueiam áudio antes do primeiro toque */
   }
+  startBackgroundAudio();
 }
 
 export function playSoundUrl(url: string | null) {
@@ -163,6 +205,7 @@ export function playSoundUrl(url: string | null) {
   try {
     const audio = new Audio(url);
     audio.volume = 1;
+    audio.setAttribute("playsinline", "");
     void audio.play().catch(() => undefined);
   } catch {
     /* alguns navegadores exigem um toque na tela antes de tocar áudio */
