@@ -199,6 +199,38 @@ export function unlockAudio() {
   startBackgroundAudio();
 }
 
+const BACKGROUND_KEY = "zaptri-background-audio";
+
+/** Mantém tela/áudio ativos para os avisos tocarem com o app em segundo plano. */
+export async function enableBackgroundMode(): Promise<void> {
+  if (typeof window === "undefined") return;
+  unlockAudio();
+  window.localStorage.setItem(BACKGROUND_KEY, "1");
+  try {
+    const wl = (navigator as Navigator & {
+      wakeLock?: { request: (type: "screen") => Promise<{ release: () => Promise<void> }> };
+    }).wakeLock;
+    if (wl) await wl.request("screen").catch(() => undefined);
+  } catch {
+    /* alguns navegadores não suportam wake lock */
+  }
+  if (!keepAlive || keepAlive.paused) startBackgroundAudio();
+  if (keepAlive?.paused) {
+    throw new Error("Toque na tela novamente para liberar o som em segundo plano");
+  }
+}
+
+export function backgroundModeEnabled() {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(BACKGROUND_KEY) === "1";
+}
+
+export function disableBackgroundMode() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(BACKGROUND_KEY);
+  keepAlive?.pause();
+}
+
 export function playSoundUrl(url: string | null) {
 
   if (!url || typeof window === "undefined") return;
