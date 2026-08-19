@@ -99,7 +99,13 @@ export function useNotifications() {
         return;
       }
       if (data?.type === "zaptri-navigate" && data.url) {
-        void navigate({ to: data.url });
+        const [path, query] = data.url.split("?");
+        const conversationId = new URLSearchParams(query ?? "").get("c");
+        void navigate(
+          conversationId
+            ? { to: "/conversas", search: { c: conversationId } }
+            : { to: (path || "/conversas") as "/conversas", search: {} },
+        );
       }
     };
 
