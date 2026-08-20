@@ -28,8 +28,25 @@ export function NotificationSettingsCard() {
   const queryClient = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
   const [supported, setSupported] = useState(true);
+  const [background, setBackground] = useState(false);
 
-  useEffect(() => setSupported(pushSupported()), []);
+  useEffect(() => {
+    setSupported(pushSupported());
+    setBackground(backgroundModeEnabled());
+  }, []);
+
+  const backgroundMutation = useMutation({
+    mutationFn: async (enable: boolean) => {
+      if (enable) await enableBackgroundMode();
+      else disableBackgroundMode();
+      return enable;
+    },
+    onSuccess: (enable) => {
+      setBackground(enable);
+      toast.success(enable ? "O app continuará avisando em segundo plano" : "Segundo plano desativado");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
   const { data: settings } = useQuery({
     queryKey: ["notification-settings"],
@@ -148,6 +165,24 @@ export function NotificationSettingsCard() {
           </Button>
         </div>
 
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
+          <div className="min-w-0">
+            <Label>Rodar em segundo plano</Label>
+            <p className="text-sm text-muted-foreground">
+              Mantém o som dos avisos funcionando com o app minimizado ou a tela bloqueada.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant={background ? "outline" : "default"}
+            disabled={backgroundMutation.isPending}
+            onClick={() => backgroundMutation.mutate(!background)}
+          >
+            <Radio className="mr-2 h-4 w-4" />
+            {background ? "Desativar" : "Permitir"}
+          </Button>
+        </div>
+
         <div className="flex items-center justify-between gap-4">
           <div>
             <Label>Tocar som</Label>
@@ -158,6 +193,7 @@ export function NotificationSettingsCard() {
             onCheckedChange={(checked) => patchMutation.mutate({ sound_enabled: checked })}
           />
         </div>
+
 
         <div className="flex items-center justify-between gap-4">
           <div>
