@@ -31,7 +31,10 @@ export function useNotifications() {
 
   // Mantém o som funcionando com o app em segundo plano (após o 1º toque na tela).
   useEffect(() => {
-    const start = () => startBackgroundAudio();
+    const start = () => {
+      if (backgroundModeEnabled()) void enableBackgroundMode().catch(() => undefined);
+      else startBackgroundAudio();
+    };
     window.addEventListener("pointerdown", start, { once: true });
     window.addEventListener("keydown", start, { once: true });
     return () => {
