@@ -28,8 +28,25 @@ export function NotificationSettingsCard() {
   const queryClient = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
   const [supported, setSupported] = useState(true);
+  const [background, setBackground] = useState(false);
 
-  useEffect(() => setSupported(pushSupported()), []);
+  useEffect(() => {
+    setSupported(pushSupported());
+    setBackground(backgroundModeEnabled());
+  }, []);
+
+  const backgroundMutation = useMutation({
+    mutationFn: async (enable: boolean) => {
+      if (enable) await enableBackgroundMode();
+      else disableBackgroundMode();
+      return enable;
+    },
+    onSuccess: (enable) => {
+      setBackground(enable);
+      toast.success(enable ? "O app continuará avisando em segundo plano" : "Segundo plano desativado");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
   const { data: settings } = useQuery({
     queryKey: ["notification-settings"],
