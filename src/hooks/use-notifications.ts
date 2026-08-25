@@ -117,4 +117,27 @@ export function useNotifications() {
     navigator.serviceWorker.addEventListener("message", onMessage);
     return () => navigator.serviceWorker.removeEventListener("message", onMessage);
   }, [navigate]);
+
+  // Ao abrir/voltar para o app, limpa avisos que ficaram pendentes na bandeja.
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+
+    const clear = () => {
+      if (document.visibilityState !== "visible") return;
+      void navigator.serviceWorker.ready.then((registration) => {
+        registration.active?.postMessage({ type: "zaptri-clear-notifications" });
+        void registration.getNotifications().then((list) => {
+          for (const notification of list) notification.close();
+        });
+      });
+    };
+
+    clear();
+    document.addEventListener("visibilitychange", clear);
+    window.addEventListener("focus", clear);
+    return () => {
+      document.removeEventListener("visibilitychange", clear);
+      window.removeEventListener("focus", clear);
+    };
+  }, []);
 }
