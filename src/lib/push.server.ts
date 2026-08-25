@@ -25,7 +25,11 @@ export async function sendWebPush(sub: StoredSubscription, payload: PushPayload)
   };
 
   const built = await buildPushPayload(
-    { data: payload, options: { ttl: 60 * 60 * 12, urgency: "high" } },
+    // TTL curto: avisos antigos não são entregues depois que perdem a validade.
+    {
+      data: { ...payload, sentAt: Date.now() },
+      options: { ttl: 60 * 30, urgency: "high" },
+    },
     {
       endpoint: sub.endpoint,
       expirationTime: null,
