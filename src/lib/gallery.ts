@@ -107,6 +107,7 @@ export async function listGlowingPreviews(): Promise<Record<string, GlowPreview>
       .from("avatar_photos")
       .select("id, user_id, path, created_at")
       .neq("user_id", userId)
+      .gte("created_at", alertCutoffIso())
       .order("created_at", { ascending: false }),
     supabase.from("avatar_photo_views").select("photo_id").eq("viewer_id", userId),
   ]);
