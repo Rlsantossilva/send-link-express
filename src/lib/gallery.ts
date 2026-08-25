@@ -20,14 +20,25 @@ export async function listAvatarPhotos(userId: string): Promise<AvatarPhoto[]> {
   return (data ?? []) as AvatarPhoto[];
 }
 
+/** Janela de validade dos avisos: nada com mais de 48h continua notificando. */
+export const ALERT_WINDOW_MS = 48 * 60 * 60 * 1000;
+
+export function alertCutoffIso() {
+  return new Date(Date.now() - ALERT_WINDOW_MS).toISOString();
+}
+
 /**
- * IDs de usuários que têm foto nova que eu ainda não vi — usados para
- * fazer o avatar brilhar como uma estrela.
+ * IDs de usuários que têm foto nova (últimas 48h) que eu ainda não vi — usados
+ * para fazer o avatar brilhar como uma estrela.
  */
 export async function listGlowingUserIds(): Promise<string[]> {
   const userId = await requireUserId();
   const [{ data: photos, error }, { data: views, error: viewsError }] = await Promise.all([
-    supabase.from("avatar_photos").select("id, user_id").neq("user_id", userId),
+    supabase
+      .from("avatar_photos")
+      .select("id, user_id")
+      .neq("user_id", userId)
+      .gte("created_at", alertCutoffIso()),
     supabase.from("avatar_photo_views").select("photo_id").eq("viewer_id", userId),
   ]);
   if (error) throw error;
