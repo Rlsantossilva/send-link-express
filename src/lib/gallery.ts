@@ -20,14 +20,25 @@ export async function listAvatarPhotos(userId: string): Promise<AvatarPhoto[]> {
   return (data ?? []) as AvatarPhoto[];
 }
 
+/** Janela de validade dos avisos: nada com mais de 48h continua notificando. */
+export const ALERT_WINDOW_MS = 48 * 60 * 60 * 1000;
+
+export function alertCutoffIso() {
+  return new Date(Date.now() - ALERT_WINDOW_MS).toISOString();
+}
+
 /**
- * IDs de usuários que têm foto nova que eu ainda não vi — usados para
- * fazer o avatar brilhar como uma estrela.
+ * IDs de usuários que têm foto nova (últimas 48h) que eu ainda não vi — usados
+ * para fazer o avatar brilhar como uma estrela.
  */
 export async function listGlowingUserIds(): Promise<string[]> {
   const userId = await requireUserId();
   const [{ data: photos, error }, { data: views, error: viewsError }] = await Promise.all([
-    supabase.from("avatar_photos").select("id, user_id").neq("user_id", userId),
+    supabase
+      .from("avatar_photos")
+      .select("id, user_id")
+      .neq("user_id", userId)
+      .gte("created_at", alertCutoffIso()),
     supabase.from("avatar_photo_views").select("photo_id").eq("viewer_id", userId),
   ]);
   if (error) throw error;
@@ -96,6 +107,7 @@ export async function listGlowingPreviews(): Promise<Record<string, GlowPreview>
       .from("avatar_photos")
       .select("id, user_id, path, created_at")
       .neq("user_id", userId)
+      .gte("created_at", alertCutoffIso())
       .order("created_at", { ascending: false }),
     supabase.from("avatar_photo_views").select("photo_id").eq("viewer_id", userId),
   ]);
@@ -192,7 +204,11 @@ export async function listMyPhotoReactionAlerts(): Promise<PhotoReactionAlert[]>
   if (error) throw error;
   if (!photos?.length) return [];
   const reactions = await listPhotoReactions(photos.map((photo) => photo.id));
-  const mine = reactions.filter((reaction) => reaction.user_id !== userId);
+  const cutoff = Date.now() - ALERT_WINDOW_MS;
+  const mine = reactions.filter(
+    (reaction) =>
+      reaction.user_id !== userId && new Date(reaction.created_at).getTime() >= cutoff,
+  );
   if (mine.length === 0) return [];
   const names = await listReactorNames(mine.map((reaction) => reaction.user_id));
   const grouped = new Map<string, PhotoReaction[]>();

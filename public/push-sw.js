@@ -15,9 +15,20 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "Zap Tri";
   const body = payload.body || "Você recebeu uma nova mensagem";
   const targetUrl = payload.url || "/conversas";
+  const MAX_AGE = 30 * 60 * 1000; // avisos com mais de 30 min não são exibidos
+  const stale = payload.sentAt ? Date.now() - payload.sentAt > MAX_AGE : false;
 
   event.waitUntil(
     (async () => {
+      // Fecha avisos que já passaram da validade (ficaram na bandeja).
+      const existing = await self.registration.getNotifications();
+      for (const notification of existing) {
+        const sentAt = notification.data && notification.data.sentAt;
+        if (!sentAt || Date.now() - sentAt > MAX_AGE) notification.close();
+      }
+
+      if (stale) return;
+
       const clientList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
       const visible = clientList.find((client) => client.visibilityState === "visible");
 
@@ -39,8 +50,23 @@ self.addEventListener("push", (event) => {
         badge: "/favicon.ico",
         vibrate: payload.kind === "reaction" ? [40, 60, 40] : [80, 40, 80],
         silent: false,
-        data: { url: targetUrl, soundUrl: payload.soundUrl || null },
+        data: {
+          url: targetUrl,
+          soundUrl: payload.soundUrl || null,
+          sentAt: payload.sentAt || Date.now(),
+        },
       });
+    })(),
+  );
+});
+
+/* Ao abrir/focar o app, limpa a bandeja de avisos pendentes. */
+self.addEventListener("message", (event) => {
+  if (!event.data || event.data.type !== "zaptri-clear-notifications") return;
+  event.waitUntil(
+    (async () => {
+      const notifications = await self.registration.getNotifications();
+      for (const notification of notifications) notification.close();
     })(),
   );
 });
