@@ -204,7 +204,11 @@ export async function listMyPhotoReactionAlerts(): Promise<PhotoReactionAlert[]>
   if (error) throw error;
   if (!photos?.length) return [];
   const reactions = await listPhotoReactions(photos.map((photo) => photo.id));
-  const mine = reactions.filter((reaction) => reaction.user_id !== userId);
+  const cutoff = Date.now() - ALERT_WINDOW_MS;
+  const mine = reactions.filter(
+    (reaction) =>
+      reaction.user_id !== userId && new Date(reaction.created_at).getTime() >= cutoff,
+  );
   if (mine.length === 0) return [];
   const names = await listReactorNames(mine.map((reaction) => reaction.user_id));
   const grouped = new Map<string, PhotoReaction[]>();
