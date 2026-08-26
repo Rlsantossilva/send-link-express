@@ -5,29 +5,29 @@ import { AvatarGalleryDialog } from "@/components/avatar-gallery-dialog";
 import { requireUserId } from "@/lib/chat";
 import { listMyPhotoReactionAlerts } from "@/lib/gallery";
 
-const STORAGE_KEY = "photo-reaction-alerts-seen";
+const STORAGE_KEY = "photo-reaction-alerts-seen-at";
 
-/** Assinatura da notificação: muda quando chegam novas reações na mesma foto. */
-function signature(alert: { photoId: string; total: number; lastAt: string }) {
-  return `${alert.photoId}:${alert.total}:${alert.lastAt}`;
-}
+/** Guarda, por foto, a data da última reação já vista — avisos antigos não voltam. */
+type SeenMap = Record<string, string>;
 
-function readSeen(): string[] {
+function readSeen(): SeenMap {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as SeenMap) : {};
   } catch {
-    return [];
+    return {};
   }
 }
 
 /**
  * Avisos de reações recebidas nas fotos do meu álbum.
- * Ao clicar, abre o álbum já na foto e o aviso desaparece — restam só os não vistos.
+ * Ao clicar, abre o álbum já na foto e o aviso desaparece de vez — só volta
+ * se chegar uma reação mais nova que a última vista.
  */
 export function PhotoReactionAlerts() {
   const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
-  const [seen, setSeen] = useState<string[]>([]);
+  const [seen, setSeen] = useState<SeenMap>({});
 
   useEffect(() => {
     setSeen(readSeen());
@@ -40,13 +40,17 @@ export function PhotoReactionAlerts() {
     staleTime: 30 * 1000,
   });
 
-  const visible = alerts.filter((alert) => !seen.includes(signature(alert)));
+  const visible = alerts.filter((alert) => {
+    const seenAt = seen[alert.photoId];
+    return !seenAt || new Date(alert.lastAt).getTime() > new Date(seenAt).getTime();
+  });
 
   function dismiss(alert: (typeof alerts)[number]) {
-    const next = [...new Set([...seen, signature(alert)])].slice(-200);
+    const next: SeenMap = { ...seen, [alert.photoId]: alert.lastAt };
     setSeen(next);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      localStorage.removeItem("photo-reaction-alerts-seen");
     } catch {
       /* armazenamento indisponível */
     }
@@ -54,6 +58,7 @@ export function PhotoReactionAlerts() {
   }
 
   if (visible.length === 0 || !myId) return null;
+
 
   return (
     <>
