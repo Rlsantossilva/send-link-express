@@ -200,6 +200,11 @@
   box-shadow: var(--shadow-bubble);
 }
 
+@utility content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 72px;
+}
+
 /* Brilho de estrela quando o avatar tem foto nova na biblioteca */
 @keyframes avatar-star-pulse {
   0%,
@@ -239,7 +244,9 @@
 }
 
 .avatar-star-ring {
-  animation: avatar-star-pulse 1.8s ease-in-out infinite;
+  box-shadow:
+    0 0 0 2px var(--secondary),
+    0 0 14px 3px oklch(0.87 0.16 92 / 0.75);
 }
 
 .avatar-star-glow {
@@ -248,12 +255,15 @@
   border-radius: 9999px;
   background: var(--gradient-sun);
   animation: avatar-star-halo 1.8s ease-out infinite;
+  z-index: 0;
+  will-change: transform, opacity;
   pointer-events: none;
 }
 
 .avatar-star-spark {
   animation: avatar-star-twinkle 1.4s ease-in-out infinite;
   filter: drop-shadow(0 0 4px oklch(0.87 0.16 92 / 0.9));
+  will-change: transform, opacity;
 }
 
 /* Miniatura da foto nova flutuando na horizontal ao lado do avatar */
@@ -273,6 +283,7 @@
 
 .avatar-photo-float {
   animation: avatar-photo-float 2.6s ease-out infinite;
+  will-change: transform, opacity;
 }
 
 
@@ -282,5 +293,20 @@
   .avatar-star-spark,
   .avatar-photo-float {
     animation: none;
+  }
+
+  .avatar-star-ring {
+    box-shadow:
+      0 0 0 2px var(--secondary),
+      0 0 18px 4px oklch(0.87 0.16 92 / 0.85);
+  }
+
+  .avatar-star-glow {
+    opacity: 0.28;
+    transform: scale(1.22);
+  }
+
+  .avatar-photo-float {
+    display: none;
   }
 }

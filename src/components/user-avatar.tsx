@@ -22,6 +22,7 @@ export function UserAvatar({
   className,
   online,
   userId,
+  showNewPhotoPreview = true,
 }: {
   path?: string | null | undefined;
   name?: string | null | undefined;
@@ -29,6 +30,8 @@ export function UserAvatar({
   online?: boolean | undefined;
   /** Quando informado, o avatar abre a biblioteca de fotos e brilha em novidades. */
   userId?: string | null | undefined;
+  /** Desative em listas muito repetidas, como cada balão do chat, para evitar travamentos. */
+  showNewPhotoPreview?: boolean | undefined;
 }) {
   const queryClient = useQueryClient();
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -59,17 +62,20 @@ export function UserAvatar({
 
   const { data: previewUrl } = useQuery({
     queryKey: ["avatar-url", preview?.path],
-    queryFn: () => createSignedUrl("avatars", preview!.path),
-    enabled: Boolean(preview?.path),
+    queryFn: () => {
+      if (!preview?.path) return Promise.resolve("");
+      return createSignedUrl("avatars", preview.path);
+    },
+    enabled: Boolean(showNewPhotoPreview && preview?.path),
     staleTime: 30 * 60 * 1000,
   });
 
   const picture = (
-    <span className="relative inline-block shrink-0">
-      {hasNews ? <span aria-hidden className={cn("avatar-star-glow", className)} /> : null}
+    <span className="relative isolate inline-block shrink-0">
+      {hasNews ? <span aria-hidden className="avatar-star-glow" /> : null}
       <Avatar
         className={cn(
-          "size-11 border border-border",
+          "relative z-10 size-11 border border-border",
           hasNews && "avatar-star-ring border-transparent",
           className,
         )}
@@ -87,12 +93,14 @@ export function UserAvatar({
           >
             ✨
           </span>
-          {previewUrl ? (
+          {showNewPhotoPreview && previewUrl ? (
             <img
               aria-hidden
               src={previewUrl}
               alt=""
-              className="avatar-photo-float pointer-events-none absolute left-full top-1/2 ml-1 size-[46px] rounded-lg border border-secondary/70 object-cover shadow-md"
+              loading="lazy"
+              decoding="async"
+              className="avatar-photo-float pointer-events-none absolute left-full top-1/2 z-20 ml-1 size-[46px] rounded-lg border border-secondary/70 object-cover shadow-md"
             />
           ) : null}
         </>

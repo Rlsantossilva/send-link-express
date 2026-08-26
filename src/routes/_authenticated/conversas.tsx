@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
@@ -16,6 +16,7 @@ import {
   listMessages,
   listReactions,
   listReceipts,
+  type MessageReaction,
   markConversationRead,
   markMessagesDelivered,
   messagePreview,
@@ -46,6 +47,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
+const EMPTY_REACTIONS: MessageReaction[] = [];
 
 export const Route = createFileRoute("/_authenticated/conversas")({
   head: () => ({
@@ -71,13 +73,18 @@ function ConversationsPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
 
-  const { data: myId } = useQuery({ queryKey: ["my-id"], queryFn: requireUserId });
+  const { data: myId } = useQuery({ queryKey: ["my-id"], queryFn: requireUserId, staleTime: Infinity });
   const onlineIds = usePresence(myId);
   const { data: allConversations = [], isLoading } = useQuery({
     queryKey: ["conversations"],
     queryFn: listConversations,
+    staleTime: 10 * 1000,
   });
-  const { data: blockedIds = [] } = useQuery({ queryKey: ["blocked"], queryFn: listBlockedIds });
+  const { data: blockedIds = [] } = useQuery({
+    queryKey: ["blocked"],
+    queryFn: listBlockedIds,
+    staleTime: 60 * 1000,
+  });
 
   const visibleConversations = useMemo(
     () =>
@@ -104,19 +111,37 @@ function ConversationsPage() {
     queryKey: ["messages", activeId],
     queryFn: () => listMessages(activeId as string),
     enabled: Boolean(activeId),
+    staleTime: 10 * 1000,
   });
 
   const { data: reactions = [] } = useQuery({
     queryKey: ["reactions", activeId],
     queryFn: () => listReactions(activeId as string),
     enabled: Boolean(activeId),
+    staleTime: 10 * 1000,
   });
 
   const { data: receipts = [] } = useQuery({
     queryKey: ["receipts", activeId],
     queryFn: () => listReceipts(activeId as string),
     enabled: Boolean(activeId),
+    staleTime: 10 * 1000,
   });
+
+  const reactionsByMessage = useMemo(() => {
+    const grouped = new Map<string, MessageReaction[]>();
+    for (const reaction of reactions) {
+      const list = grouped.get(reaction.message_id) ?? [];
+      list.push(reaction);
+      grouped.set(reaction.message_id, list);
+    }
+    return grouped;
+  }, [reactions]);
+
+  const nameById = useMemo(
+    () => Object.fromEntries((active?.members ?? []).map((member) => [member.id, member.display_name])),
+    [active?.members],
+  );
 
   useEffect(() => {
     if (!activeId || !myId || messages.length === 0) return;
@@ -170,6 +195,13 @@ function ConversationsPage() {
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const handleReact = useCallback(
+    (messageId: string, emoji: string) => reactMutation.mutate({ messageId, emoji }),
+    [reactMutation],
+  );
+
+  const handleDelete = useCallback((id: string) => removeMessage.mutate(id), [removeMessage]);
 
   const archiveMutation = useMutation({
     mutationFn: ({ id, archived }: { id: string; archived: boolean }) =>
@@ -486,14 +518,12 @@ function ConversationsPage() {
                       showSender={active.is_group}
                       status={message.sender_id === myId ? ownStatus(message.id) : undefined}
 
-                      reactions={reactions.filter((r) => r.message_id === message.id)}
+                      reactions={reactionsByMessage.get(message.id) ?? EMPTY_REACTIONS}
                       myId={myId ?? ""}
-                      nameById={Object.fromEntries(
-                        active.members.map((member) => [member.id, member.display_name]),
-                      )}
+                      nameById={nameById}
 
-                      onReact={(messageId, emoji) => reactMutation.mutate({ messageId, emoji })}
-                      onDelete={(id) => removeMessage.mutate(id)}
+                      onReact={handleReact}
+                      onDelete={handleDelete}
                     />
                   );
                 })}

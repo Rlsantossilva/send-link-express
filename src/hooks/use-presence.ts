@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 /** Tracks which users are currently online using Realtime presence. */
@@ -26,5 +26,5 @@ export function usePresence(myId: string | undefined) {
     };
   }, [myId]);
 
-  return new Set(onlineIds);
+  return useMemo(() => new Set(onlineIds), [onlineIds]);
 }
