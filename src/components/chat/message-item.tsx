@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, CheckCheck, Copy, Download, Scissors, SmilePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -39,12 +39,12 @@ function MediaContent({ message }: { message: Message }) {
   }
 
   if (message.kind === "video") {
-    return <video src={url} controls className="max-h-72 w-full max-w-xs rounded-xl" />;
+      return <video src={url} controls preload="metadata" className="max-h-72 w-full max-w-xs rounded-xl" />;
   }
 
   return (
     <div className="flex items-center gap-2">
-      <audio src={url} controls className="h-10 w-56" />
+      <audio src={url} controls preload="none" className="h-10 w-56" />
       <a href={url} download={message.media_name ?? "audio"} aria-label="Baixar áudio">
         <Download className="size-4 opacity-70" />
       </a>
@@ -68,7 +68,7 @@ function StatusTicks({ status }: { status: "sent" | "delivered" | "read" }) {
   );
 }
 
-export function MessageItem({
+export const MessageItem = memo(function MessageItem({
   message,
   isOwn,
   senderName,
@@ -125,8 +125,8 @@ export function MessageItem({
   }
 
   return (
-    <div className={cn("flex items-end gap-2", isOwn ? "justify-end" : "justify-start")}>
-      {!isOwn ? <UserAvatar userId={message.sender_id} path={senderAvatar} name={senderName} className="size-8" /> : null}
+    <div className={cn("content-auto flex items-end gap-2", isOwn ? "justify-end" : "justify-start")}>
+      {!isOwn ? <UserAvatar path={senderAvatar} name={senderName} className="size-8" /> : null}
 
       <div className={cn("flex max-w-[85%] flex-col sm:max-w-[70%]", isOwn ? "items-end" : "items-start")}>
         {isOwn ? (
@@ -288,5 +288,5 @@ export function MessageItem({
       </div>
     </div>
   );
-}
+});
 

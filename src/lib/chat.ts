@@ -273,11 +273,25 @@ export async function markConversationRead(conversationId: string) {
   if (error) throw error;
   const ids = (msgs ?? []).filter((m) => m.sender_id !== userId).map((m) => m.id);
   if (ids.length === 0) return;
+
+  const { data: existing, error: existingError } = await supabase
+    .from("message_receipts")
+    .select("message_id, read_at")
+    .eq("user_id", userId)
+    .in("message_id", ids);
+  if (existingError) throw existingError;
+
+  const alreadyRead = new Set(
+    (existing ?? []).filter((receipt) => receipt.read_at).map((receipt) => receipt.message_id),
+  );
+  const unreadIds = ids.filter((id) => !alreadyRead.has(id));
+  if (unreadIds.length === 0) return;
+
   const now = new Date().toISOString();
   const { error: upsertError } = await supabase
     .from("message_receipts")
     .upsert(
-      ids.map((message_id) => ({ message_id, user_id: userId, delivered_at: now, read_at: now })),
+      unreadIds.map((message_id) => ({ message_id, user_id: userId, delivered_at: now, read_at: now })),
       { onConflict: "message_id,user_id" },
     );
   if (upsertError) throw upsertError;
