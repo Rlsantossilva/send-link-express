@@ -3,13 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  backgroundModeEnabled,
-  enableBackgroundMode,
   getNotificationSettings,
   playSoundUrl,
   registerPushWorker,
   resolveSoundUrl,
-  startBackgroundAudio,
 } from "@/lib/notifications";
 
 /**
@@ -30,20 +27,6 @@ export function useNotifications() {
     if (!settings?.push_enabled) return;
     void registerPushWorker();
   }, [settings?.push_enabled]);
-
-  // Mantém o som funcionando com o app em segundo plano (após o 1º toque na tela).
-  useEffect(() => {
-    const start = () => {
-      if (backgroundModeEnabled()) void enableBackgroundMode().catch(() => undefined);
-      else startBackgroundAudio();
-    };
-    window.addEventListener("pointerdown", start, { once: true });
-    window.addEventListener("keydown", start, { once: true });
-    return () => {
-      window.removeEventListener("pointerdown", start);
-      window.removeEventListener("keydown", start);
-    };
-  }, []);
 
   // Sons quando o app está aberto (o service worker cuida do resto).
   useEffect(() => {

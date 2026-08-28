@@ -10,7 +10,6 @@ import {
   pushSupported,
   resolveSoundUrl,
   playSoundUrl,
-  unlockAudio,
 } from "@/lib/notifications";
 
 const DISMISS_KEY = "zaptri-push-banner-dismissed";
@@ -50,7 +49,6 @@ export function EnableNotificationsBanner() {
 
   const enable = useMutation({
     mutationFn: async () => {
-      unlockAudio();
       await enablePushOnThisDevice();
     },
     onSuccess: async () => {
