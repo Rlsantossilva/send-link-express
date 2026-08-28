@@ -18,7 +18,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "Connect \u0026 Share"
+const SITE_NAME = "Zap Tri"
 const ROOT_DOMAIN = "zaptrimensage.com"
 
 // Sample data for preview mode ONLY (not used in actual email sending).
