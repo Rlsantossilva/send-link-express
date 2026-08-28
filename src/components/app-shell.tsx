@@ -25,7 +25,19 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const { data: profile } = useQuery({ queryKey: ["my-profile"], queryFn: getMyProfile });
   const checkAdmin = useServerFn(amIAdmin);
-  const { data: isAdmin } = useQuery({ queryKey: ["am-i-admin"], queryFn: () => checkAdmin(), retry: false });
+  const { data: hasSession } = useQuery({
+    queryKey: ["has-session"],
+    queryFn: async () => Boolean((await supabase.auth.getSession()).data.session?.access_token),
+    staleTime: 30_000,
+  });
+  const { data: isAdmin } = useQuery({
+    queryKey: ["am-i-admin"],
+    queryFn: () => checkAdmin(),
+    enabled: hasSession === true,
+    retry: false,
+    staleTime: 5 * 60_000,
+  });
+
   const myName = profile?.display_name || profile?.email || "Você";
 
   async function signOut() {
