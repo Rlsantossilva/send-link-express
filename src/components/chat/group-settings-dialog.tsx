@@ -101,22 +101,30 @@ export function GroupSettingsDialog({
           <div className="flex items-center gap-4">
             <UserAvatar path={conversation.avatar_url} name={conversation.name} className="size-16" />
             <div>
-              <Label htmlFor="group-photo" className="cursor-pointer">
-                <span className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium hover:bg-muted">
-                  <Camera className="size-4" /> Alterar foto
-                </span>
-              </Label>
-              <input
-                id="group-photo"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) photoMutation.mutate(file);
-                  event.target.value = "";
-                }}
-              />
+              {isOwner ? (
+                <>
+                  <Label htmlFor="group-photo" className="cursor-pointer">
+                    <span className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium hover:bg-muted">
+                      <Camera className="size-4" /> Alterar foto
+                    </span>
+                  </Label>
+                  <input
+                    id="group-photo"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) photoMutation.mutate(file);
+                      event.target.value = "";
+                    }}
+                  />
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Só administradores do grupo podem alterar a foto.
+                </p>
+              )}
             </div>
           </div>
 
