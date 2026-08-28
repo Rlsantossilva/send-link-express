@@ -143,13 +143,23 @@ function ConversationsPage() {
     [active?.members],
   );
 
+  // Marca como lida apenas uma vez por conversa/última mensagem — evita loop de
+  // escrita → evento em tempo real → recarga → escrita, que travava a tela.
+  const readMarkRef = useRef<string | null>(null);
+  const lastMessageId = messages.length > 0 ? messages[messages.length - 1]?.id : undefined;
+
   useEffect(() => {
-    if (!activeId || !myId || messages.length === 0) return;
+    if (!activeId || !myId || !lastMessageId) return;
+    const mark = `${activeId}:${lastMessageId}`;
+    if (readMarkRef.current === mark) return;
+    readMarkRef.current = mark;
     void markConversationRead(activeId).then(() => {
       void queryClient.invalidateQueries({ queryKey: ["receipts", activeId] });
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
     });
-  }, [activeId, myId, messages.length, queryClient]);
+  }, [activeId, myId, lastMessageId, queryClient]);
+
+  const deliveredRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!myId) return;
@@ -157,9 +167,13 @@ function ConversationsPage() {
       .filter((conversation) => conversation.id !== activeId)
       .map((conversation) => conversation.lastMessage)
       .filter((message) => message && message.sender_id !== myId)
-      .map((message) => message!.id);
-    if (pending.length > 0) void markMessagesDelivered(pending);
+      .map((message) => message!.id)
+      .filter((id) => !deliveredRef.current.has(id));
+    if (pending.length === 0) return;
+    for (const id of pending) deliveredRef.current.add(id);
+    void markMessagesDelivered(pending);
   }, [allConversations, activeId, myId]);
+
 
   function ownStatus(messageId: string): "sent" | "delivered" | "read" {
     const others = (active?.members ?? []).filter((member) => member.id !== myId).length;

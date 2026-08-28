@@ -7,7 +7,7 @@ const TABLE_KEYS: Record<string, string[][]> = {
   conversations: [["conversations"]],
   conversation_members: [["conversations"]],
   message_reactions: [["reactions"], ["conversations"]],
-  message_receipts: [["receipts"], ["conversations"]],
+  message_receipts: [["receipts"]],
   profiles: [["conversations"], ["contacts"], ["my-profile"]],
   contacts: [["contacts"], ["conversations"]],
   invites: [["invites"], ["contacts"]],
@@ -35,7 +35,7 @@ export function useRealtimeSync() {
 
     const queueInvalidation = (keys: string[][]) => {
       for (const queryKey of keys) pendingKeys.set(JSON.stringify(queryKey), queryKey);
-      if (!flushTimer) flushTimer = setTimeout(flush, 250);
+      if (!flushTimer) flushTimer = setTimeout(flush, 800);
     };
 
     for (const [table, keys] of Object.entries(TABLE_KEYS)) {
