@@ -24,20 +24,18 @@ export const RecoveryEmail = ({
     <Head>
       <style>{darkModeCss}</style>
     </Head>
-    <Preview>Redefinir sua senha for {siteName}</Preview>
+    <Preview>Redefinir sua senha no {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>Redefinir sua senha</Heading>
         <Text style={text}>
-          We received a request to reset your password for {siteName}. Click
-          the button below to choose a new password.
+          Recebemos um pedido para redefinir sua senha no {siteName}. Clique no botão abaixo para escolher uma nova senha.
         </Text>
         <Button className="dm-btn" style={button} href={confirmationUrl}>
           Redefinir senha
         </Button>
         <Text style={footer}>
-          If you didn't request a password reset, you can safely ignore this
-          email. Your password will not be changed.
+          Se você não pediu a redefinição, ignore este e-mail. Sua senha não será alterada.
         </Text>
       </Container>
     </Body>
