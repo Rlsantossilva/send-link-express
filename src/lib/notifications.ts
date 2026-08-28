@@ -141,6 +141,8 @@ const SILENCE_WAV =
   "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQAAAAA=";
 
 let keepAlive: HTMLAudioElement | null = null;
+let keepAliveWired = false;
+let lastResumeAt = 0;
 
 /**
  * Mantém o app "tocando" em segundo plano com um áudio silencioso em loop.
@@ -159,23 +161,28 @@ export function startBackgroundAudio() {
     void keepAlive.play().catch(() => undefined);
 
     if ("mediaSession" in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: "Zap Tri",
-        artist: "Avisos de mensagens",
-      });
       navigator.mediaSession.playbackState = "playing";
     }
 
-    const resume = () => {
-      if (!stopped && keepAlive?.paused) void keepAlive.play().catch(() => undefined);
-    };
-    document.addEventListener("visibilitychange", resume);
-    window.addEventListener("focus", resume);
-    keepAlive.addEventListener("pause", resume);
+    // Listeners registrados uma única vez e com intervalo mínimo entre tentativas,
+    // para o navegador não entrar em ciclo pausa → play que travava a aba.
+    if (!keepAliveWired) {
+      keepAliveWired = true;
+      const resume = () => {
+        if (stopped || !keepAlive?.paused) return;
+        const now = Date.now();
+        if (now - lastResumeAt < 5000) return;
+        lastResumeAt = now;
+        void keepAlive.play().catch(() => undefined);
+      };
+      document.addEventListener("visibilitychange", resume);
+      window.addEventListener("focus", resume);
+    }
   } catch {
     /* alguns navegadores só permitem áudio após um toque */
   }
 }
+
 
 /** Destrava o áudio no celular: precisa acontecer dentro de um toque do usuário. */
 export function unlockAudio() {
