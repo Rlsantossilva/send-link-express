@@ -93,7 +93,7 @@ export function GroupSettingsDialog({
         <DialogHeader>
           <DialogTitle>Configurações do grupo</DialogTitle>
           <DialogDescription>
-            Todos podem alterar a foto. Quem criou o grupo pode renomear, adicionar e bloquear contatos.
+            Quem criou o grupo (ou administradores) pode alterar a foto, renomear, adicionar e bloquear contatos.
           </DialogDescription>
         </DialogHeader>
 
