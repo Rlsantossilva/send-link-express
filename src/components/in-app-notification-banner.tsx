@@ -159,16 +159,24 @@ export function InAppNotificationBanner() {
       className="pointer-events-none fixed inset-x-0 top-0 z-[100] flex flex-col items-center gap-2 p-3 sm:p-4"
     >
       {banners.map((banner, index) => (
-        <button
+        <div
           key={banner.id}
-          type="button"
+          role="button"
+          tabIndex={0}
           onClick={() => {
             setBanners((prev) => prev.filter((b) => b.id !== banner.id));
             void navigate({ to: "/conversas", search: { c: banner.conversationId } });
           }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setBanners((prev) => prev.filter((b) => b.id !== banner.id));
+              void navigate({ to: "/conversas", search: { c: banner.conversationId } });
+            }
+          }}
           style={{ animationDelay: `${index * 60}ms` }}
           className={cn(
-            "pointer-events-auto flex w-full max-w-md animate-in items-center gap-3 rounded-2xl border border-border bg-background/95 p-3 shadow-panel backdrop-blur-sm fade-in slide-in-from-top-full duration-300",
+            "pointer-events-auto flex w-full max-w-md animate-in cursor-pointer items-center gap-3 rounded-2xl border border-border bg-background/95 p-3 shadow-panel backdrop-blur-sm fade-in slide-in-from-top-full duration-300",
             "hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           )}
         >
@@ -190,7 +198,7 @@ export function InAppNotificationBanner() {
           >
             <X className="size-4" />
           </button>
-        </button>
+        </div>
       ))}
     </div>
   );
