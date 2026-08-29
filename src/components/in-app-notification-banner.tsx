@@ -89,6 +89,7 @@ export function InAppNotificationBanner() {
     void supabase.auth.getUser().then(({ data }) => {
       if (cancelled) return;
       myId = data.user?.id ?? null;
+      if (!myId) return;
 
       const channel = supabase.channel("in-app-notifications");
       channel
