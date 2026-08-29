@@ -176,14 +176,11 @@ export function InAppNotificationBanner() {
 
           <div className="min-w-0 flex-1 text-left">
             <p className="truncate text-sm font-semibold">{banner.senderName}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {banner.kind === "reaction" ? banner.preview : banner.preview}
-            </p>
+            <p className="truncate text-xs text-muted-foreground">{banner.preview}</p>
           </div>
 
-          <span
+          <button
             type="button"
-            role="button"
             aria-label="Fechar notificação"
             onClick={(event) => {
               event.stopPropagation();
@@ -192,7 +189,7 @@ export function InAppNotificationBanner() {
             className="pointer-events-auto rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <X className="size-4" />
-          </span>
+          </button>
         </button>
       ))}
     </div>
