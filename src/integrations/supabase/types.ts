@@ -355,6 +355,8 @@ export type Database = {
       }
       notification_settings: {
         Row: {
+          banner_messages: boolean
+          banner_reactions: boolean
           created_at: string
           custom_sound_name: string | null
           custom_sound_path: string | null
@@ -363,10 +365,14 @@ export type Database = {
           push_enabled: boolean
           reaction_sound: string
           sound_enabled: boolean
+          sound_messages: boolean
+          sound_reactions: boolean
           updated_at: string
           user_id: string
         }
         Insert: {
+          banner_messages?: boolean
+          banner_reactions?: boolean
           created_at?: string
           custom_sound_name?: string | null
           custom_sound_path?: string | null
@@ -375,10 +381,14 @@ export type Database = {
           push_enabled?: boolean
           reaction_sound?: string
           sound_enabled?: boolean
+          sound_messages?: boolean
+          sound_reactions?: boolean
           updated_at?: string
           user_id: string
         }
         Update: {
+          banner_messages?: boolean
+          banner_reactions?: boolean
           created_at?: string
           custom_sound_name?: string | null
           custom_sound_path?: string | null
@@ -387,6 +397,8 @@ export type Database = {
           push_enabled?: boolean
           reaction_sound?: string
           sound_enabled?: boolean
+          sound_messages?: boolean
+          sound_reactions?: boolean
           updated_at?: string
           user_id?: string
         }
