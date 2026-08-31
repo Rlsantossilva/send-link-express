@@ -113,7 +113,7 @@ export function InAppNotificationBanner() {
             if (isCurrentConversation(row.conversation_id)) return;
 
             const profile = await getProfile(row.sender_id);
-            pushBanner({
+            void pushBanner({
               id: `msg-${row.id}-${Date.now()}`,
               conversationId: row.conversation_id,
               senderId: row.sender_id,
@@ -140,7 +140,7 @@ export function InAppNotificationBanner() {
             if (isCurrentConversation(message.conversation_id)) return;
 
             const profile = await getProfile(row.user_id);
-            pushBanner({
+            void pushBanner({
               id: `react-${row.id}-${Date.now()}`,
               conversationId: message.conversation_id,
               senderId: row.user_id,
