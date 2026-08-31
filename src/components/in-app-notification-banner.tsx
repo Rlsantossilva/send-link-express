@@ -90,8 +90,6 @@ export function InAppNotificationBanner() {
         return next;
       });
 
-      void play(banner.kind);
-
       const timer = setTimeout(() => {
         timersRef.current.delete(timer);
         setBanners((prev) => prev.filter((b) => b.id !== banner.id));
