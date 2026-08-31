@@ -109,9 +109,20 @@ export const notifyConversationEvent = createServerFn({ method: "POST" })
       if (!settings?.push_enabled) continue;
       if (data.kind === "reaction" && !settings.notify_reactions) continue;
 
+      // Respeita os interruptores de aviso na tela por tipo.
+      const bannerAllowed =
+        data.kind === "reaction" ? settings.banner_reactions !== false : settings.banner_messages !== false;
+      if (!bannerAllowed) continue;
+
+      const soundAllowed =
+        settings.sound_enabled !== false &&
+        (data.kind === "reaction" ? settings.sound_reactions !== false : settings.sound_messages !== false);
+
       const soundId = data.kind === "reaction" ? settings.reaction_sound : settings.message_sound;
-      let soundUrl: string | null = BUILTIN_SOUNDS.find((s) => s.id === soundId)?.url ?? null;
-      if (soundId === CUSTOM_SOUND_ID && settings.custom_sound_path) {
+      let soundUrl: string | null = soundAllowed
+        ? (BUILTIN_SOUNDS.find((s) => s.id === soundId)?.url ?? null)
+        : null;
+      if (soundAllowed && soundId === CUSTOM_SOUND_ID && settings.custom_sound_path) {
         const { data: signed } = await supabaseAdmin.storage
           .from("notification-sounds")
           .createSignedUrl(settings.custom_sound_path, 60 * 60 * 12);
