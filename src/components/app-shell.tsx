@@ -14,6 +14,7 @@ import { amIAdmin } from "@/lib/admin.functions";
 const NAV = [
   { to: "/conversas", label: "Conversas", icon: MessageSquare },
   { to: "/contatos", label: "Contatos", icon: Users },
+  { to: "/configuracoes", label: "Configurações", icon: Settings },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
