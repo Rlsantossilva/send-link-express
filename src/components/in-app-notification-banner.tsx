@@ -39,7 +39,16 @@ export function InAppNotificationBanner() {
       const settings = await settingsPromise;
       if (!settings?.sound_enabled) return;
       if (kind === "reaction" && !settings?.notify_reactions) return;
+      if (kind === "message" && settings.sound_messages === false) return;
+      if (kind === "reaction" && settings.sound_reactions === false) return;
       playSoundUrl(await resolveSoundUrl(settings, kind));
+    };
+
+    const bannerAllowed = async (kind: "message" | "reaction") => {
+      const settings = await settingsPromise;
+      if (!settings) return true;
+      if (kind === "reaction" && !settings.notify_reactions) return false;
+      return kind === "message" ? settings.banner_messages !== false : settings.banner_reactions !== false;
     };
 
     const profileCache = new Map<string, { display_name: string; avatar_url: string | null }>();
