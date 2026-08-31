@@ -37,6 +37,8 @@ export function useNotifications() {
       const current = settingsRef.current;
       if (!current?.sound_enabled) return;
       if (kind === "reaction" && !current.notify_reactions) return;
+      if (kind === "message" && current.sound_messages === false) return;
+      if (kind === "reaction" && current.sound_reactions === false) return;
       playSoundUrl(await resolveSoundUrl(current, kind));
     };
 

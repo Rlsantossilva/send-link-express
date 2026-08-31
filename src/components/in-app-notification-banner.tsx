@@ -39,7 +39,16 @@ export function InAppNotificationBanner() {
       const settings = await settingsPromise;
       if (!settings?.sound_enabled) return;
       if (kind === "reaction" && !settings?.notify_reactions) return;
+      if (kind === "message" && settings.sound_messages === false) return;
+      if (kind === "reaction" && settings.sound_reactions === false) return;
       playSoundUrl(await resolveSoundUrl(settings, kind));
+    };
+
+    const bannerAllowed = async (kind: "message" | "reaction") => {
+      const settings = await settingsPromise;
+      if (!settings) return true;
+      if (kind === "reaction" && !settings.notify_reactions) return false;
+      return kind === "message" ? settings.banner_messages !== false : settings.banner_reactions !== false;
     };
 
     const profileCache = new Map<string, { display_name: string; avatar_url: string | null }>();
@@ -67,17 +76,19 @@ export function InAppNotificationBanner() {
       return convId === conversationId;
     }
 
-    function pushBanner(banner: Banner) {
+    async function pushBanner(banner: Banner) {
       if (cancelled) return;
       if (isCurrentConversation(banner.conversationId)) return;
+
+      void play(banner.kind);
+      if (!(await bannerAllowed(banner.kind))) return;
+      if (cancelled) return;
 
       setBanners((prev) => {
         const next = [...prev, banner];
         if (next.length > MAX_BANNERS) next.shift();
         return next;
       });
-
-      void play(banner.kind);
 
       const timer = setTimeout(() => {
         timersRef.current.delete(timer);
@@ -102,7 +113,7 @@ export function InAppNotificationBanner() {
             if (isCurrentConversation(row.conversation_id)) return;
 
             const profile = await getProfile(row.sender_id);
-            pushBanner({
+            void pushBanner({
               id: `msg-${row.id}-${Date.now()}`,
               conversationId: row.conversation_id,
               senderId: row.sender_id,
@@ -129,7 +140,7 @@ export function InAppNotificationBanner() {
             if (isCurrentConversation(message.conversation_id)) return;
 
             const profile = await getProfile(row.user_id);
-            pushBanner({
+            void pushBanner({
               id: `react-${row.id}-${Date.now()}`,
               conversationId: message.conversation_id,
               senderId: row.user_id,

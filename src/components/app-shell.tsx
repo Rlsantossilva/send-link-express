@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessageSquare, Users, UserRound, LogOut, Images, ShieldCheck } from "lucide-react";
+import { MessageSquare, Users, UserRound, LogOut, Images, ShieldCheck, Settings } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile } from "@/lib/chat";
@@ -14,6 +14,7 @@ import { amIAdmin } from "@/lib/admin.functions";
 const NAV = [
   { to: "/conversas", label: "Conversas", icon: MessageSquare },
   { to: "/contatos", label: "Contatos", icon: Users },
+  { to: "/configuracoes", label: "Configurações", icon: Settings },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
