@@ -85,7 +85,9 @@ export const notifyConversationEvent = createServerFn({ method: "POST" })
       supabaseAdmin.from("blocked_users").select("blocker_id").eq("blocked_id", userId).in("blocker_id", recipients),
       supabaseAdmin
         .from("notification_settings")
-        .select("user_id, push_enabled, notify_reactions, message_sound, reaction_sound, custom_sound_path")
+        .select(
+          "user_id, push_enabled, notify_reactions, message_sound, reaction_sound, custom_sound_path, sound_enabled, banner_messages, banner_reactions, sound_messages, sound_reactions",
+        )
         .in("user_id", recipients),
       supabaseAdmin.from("push_subscriptions").select("id, user_id, endpoint, p256dh, auth").in("user_id", recipients),
     ]);
