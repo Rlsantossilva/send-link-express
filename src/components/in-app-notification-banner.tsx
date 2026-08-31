@@ -76,6 +76,25 @@ export function InAppNotificationBanner() {
       return convId === conversationId;
     }
 
+    /** Em segundo plano, mostra o aviso do sistema (aparece sobre outros apps). */
+    async function showSystemNotification(banner: Banner) {
+      if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+      if (!("serviceWorker" in navigator)) return;
+      try {
+        const registration = await navigator.serviceWorker.getRegistration("/push-sw.js");
+        if (!registration) return;
+        await registration.showNotification(banner.senderName, {
+          body: banner.preview,
+          tag: `${banner.kind}-${banner.conversationId}`,
+          icon: "/favicon.ico",
+          badge: "/favicon.ico",
+          data: { url: `/conversas?c=${banner.conversationId}`, sentAt: Date.now() },
+        });
+      } catch {
+        /* aparelho pode bloquear avisos do sistema */
+      }
+    }
+
     async function pushBanner(banner: Banner) {
       if (cancelled) return;
       if (isCurrentConversation(banner.conversationId)) return;
@@ -83,6 +102,13 @@ export function InAppNotificationBanner() {
       void play(banner.kind);
       if (!(await bannerAllowed(banner.kind))) return;
       if (cancelled) return;
+
+      // Tela bloqueada ou app em segundo plano: o aviso precisa vir do sistema.
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        await showSystemNotification(banner);
+        return;
+      }
+
 
       setBanners((prev) => {
         const next = [...prev, banner];
