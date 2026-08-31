@@ -16,6 +16,10 @@ export type NotificationSettings = {
   custom_sound_path: string | null;
   custom_sound_name: string | null;
   notify_reactions: boolean;
+  banner_messages: boolean;
+  banner_reactions: boolean;
+  sound_messages: boolean;
+  sound_reactions: boolean;
 };
 
 export async function getNotificationSettings(): Promise<NotificationSettings> {
