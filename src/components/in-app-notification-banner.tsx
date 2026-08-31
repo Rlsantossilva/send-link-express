@@ -76,9 +76,13 @@ export function InAppNotificationBanner() {
       return convId === conversationId;
     }
 
-    function pushBanner(banner: Banner) {
+    async function pushBanner(banner: Banner) {
       if (cancelled) return;
       if (isCurrentConversation(banner.conversationId)) return;
+
+      void play(banner.kind);
+      if (!(await bannerAllowed(banner.kind))) return;
+      if (cancelled) return;
 
       setBanners((prev) => {
         const next = [...prev, banner];
