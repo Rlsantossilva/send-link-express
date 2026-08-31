@@ -159,6 +159,48 @@ export function NotificationSettingsCard() {
         </div>
 
 
+        <div className="rounded-xl border border-border p-4 space-y-4">
+          <div>
+            <Label>Aviso na tela (banner)</Label>
+            <p className="text-sm text-muted-foreground">
+              Mostra o aviso no topo da tela, como no WhatsApp. Para aparecer sobre outros aplicativos, toque em
+              "Permitir" acima e mantenha as notificações do Zap Tri liberadas nas configurações do aparelho.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <Label className="font-normal">Banner de mensagens</Label>
+            <Switch
+              checked={settings?.banner_messages ?? true}
+              onCheckedChange={(checked) => patchMutation.mutate({ banner_messages: checked })}
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <Label className="font-normal">Banner de reações</Label>
+            <Switch
+              checked={settings?.banner_reactions ?? true}
+              onCheckedChange={(checked) => patchMutation.mutate({ banner_reactions: checked })}
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <Label className="font-normal">Som de mensagens</Label>
+            <Switch
+              checked={settings?.sound_messages ?? true}
+              onCheckedChange={(checked) => patchMutation.mutate({ sound_messages: checked })}
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <Label className="font-normal">Som de reações</Label>
+            <Switch
+              checked={settings?.sound_reactions ?? true}
+              onCheckedChange={(checked) => patchMutation.mutate({ sound_reactions: checked })}
+            />
+          </div>
+        </div>
+
         <div className="flex items-center justify-between gap-4">
           <div>
             <Label>Avisar reações</Label>
