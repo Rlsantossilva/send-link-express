@@ -1,21 +1,18 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Trash2, UserPlus, X } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Check, ShieldCheck, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
-  addContact,
-  createInvite,
   deleteInvite,
-  findProfileByEmailOrPhone,
   getOrCreateDirectConversation,
   listContacts,
-  listInvites,
   removeContact,
   respondToInvite,
-  type Invite,
 } from "@/lib/chat";
+import { listMyInvites, sendInvite, type InviteView } from "@/lib/invites.functions";
 import { AppShell } from "@/components/app-shell";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
@@ -31,21 +28,21 @@ export const Route = createFileRoute("/_authenticated/contatos")({
       { title: "Contatos e convites — Zap Tri" },
       {
         name: "description",
-        content: "Adicione contatos e envie convites por e-mail ou número de telefone no Zap Tri.",
+        content:
+          "Convide pessoas por e-mail ou telefone no Zap Tri. O contato só é criado depois que a pessoa aceita.",
       },
       { property: "og:title", content: "Contatos e convites — Zap Tri" },
-      { property: "og:description", content: "Gerencie contatos e convide pessoas para conversar." },
+      { property: "og:description", content: "Convites com consentimento: só vira contato quem aceitar." },
     ],
   }),
   component: ContactsPage,
 });
 
-const identifierSchema = z
-  .string()
-  .trim()
-  .min(5, "Informe um e-mail ou telefone válido")
-  .max(255, "Valor muito longo");
-
+const statusLabel: Record<InviteView["status"], string> = {
+  pending: "Aguardando resposta",
+  accepted: "Convite aceito",
+  declined: "Convite recusado",
+};
 
 function InviteRow({
   invite,
@@ -53,7 +50,7 @@ function InviteRow({
   onRespond,
   onDelete,
 }: {
-  invite: Invite;
+  invite: InviteView;
   received: boolean;
   onRespond: (accept: boolean) => void;
   onDelete: () => void;
@@ -61,23 +58,26 @@ function InviteRow({
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border px-3 py-2">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{invite.invitee_email || invite.invitee_phone}</p>
+        <p className="truncate text-sm font-medium">{invite.counterpartName ?? invite.target}</p>
+        {invite.counterpartName ? (
+          <p className="truncate text-xs text-muted-foreground">{invite.target}</p>
+        ) : null}
         <p className="text-xs text-muted-foreground">
-          {invite.message ? invite.message : invite.status === "pending" ? "Aguardando resposta" : invite.status}
+          {invite.message ? invite.message : statusLabel[invite.status]}
         </p>
       </div>
       {received && invite.status === "pending" ? (
         <>
-          <Button size="icon" variant="ghost" aria-label="Aceitar" onClick={() => onRespond(true)}>
+          <Button size="icon" variant="ghost" aria-label="Aceitar convite" onClick={() => onRespond(true)}>
             <Check className="size-4 text-primary" />
           </Button>
-          <Button size="icon" variant="ghost" aria-label="Recusar" onClick={() => onRespond(false)}>
+          <Button size="icon" variant="ghost" aria-label="Recusar convite" onClick={() => onRespond(false)}>
             <X className="size-4 text-destructive" />
           </Button>
         </>
       ) : null}
-      {!received ? (
-        <Button size="icon" variant="ghost" aria-label="Excluir convite" onClick={onDelete}>
+      {!received && invite.status === "pending" ? (
+        <Button size="icon" variant="ghost" aria-label="Cancelar convite" onClick={onDelete}>
           <Trash2 className="size-4" />
         </Button>
       ) : null}
@@ -88,55 +88,35 @@ function InviteRow({
 function ContactsPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [identifier, setIdentifier] = useState("");
   const emptyForm = { email: "", phone: "", message: "" };
   const [form, setForm] = useState(emptyForm);
   const setField = (key: keyof typeof emptyForm, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  const createInvite = useServerFn(sendInvite);
+  const fetchInvites = useServerFn(listMyInvites);
+
   const { data: contacts = [] } = useQuery({ queryKey: ["contacts"], queryFn: listContacts });
-  const { data: invites } = useQuery({ queryKey: ["invites"], queryFn: listInvites });
+  const { data: invites } = useQuery({ queryKey: ["invites"], queryFn: () => fetchInvites({}) });
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ["contacts"] });
     void queryClient.invalidateQueries({ queryKey: ["invites"] });
   };
 
-  const addMutation = useMutation({
-    mutationFn: async () => {
-      const parsed = identifierSchema.safeParse(identifier);
-      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Valor inválido");
-      const profile = await findProfileByEmailOrPhone(parsed.data);
-      if (!profile) throw new Error("Ninguém encontrado. Envie um convite.");
-      await addContact(profile.id);
-      return profile.display_name;
-    },
-    onSuccess: (name) => {
-      setIdentifier("");
-      refresh();
-      toast.success(`${name} foi adicionado aos contatos`);
-    },
-    onError: (error: Error) => toast.error(error.message),
-  });
-
   const inviteMutation = useMutation({
     mutationFn: async () => {
-      const parsed = z
-        .object({
-          email: z.string().trim().max(255).optional(),
-          phone: z.string().trim().max(20).optional(),
-          message: z.string().trim().max(300).optional(),
-        })
-        .safeParse(form);
-      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos");
-      if (!parsed.data.email && !parsed.data.phone) throw new Error("Informe um e-mail ou telefone");
-      if (parsed.data.email && !z.string().email().safeParse(parsed.data.email).success) {
-        throw new Error("E-mail inválido");
-      }
+      const email = form.email.trim();
+      const phone = form.phone.trim();
+      const message = form.message.trim();
+      if (!email && !phone) throw new Error("Informe um e-mail ou telefone");
+      if (email && !z.string().email().safeParse(email).success) throw new Error("E-mail inválido");
       return createInvite({
-        ...(parsed.data.email ? { email: parsed.data.email } : {}),
-        ...(parsed.data.phone ? { phone: parsed.data.phone } : {}),
-        ...(parsed.data.message ? { message: parsed.data.message } : {}),
+        data: {
+          ...(email ? { email } : {}),
+          ...(phone ? { phone } : {}),
+          ...(message ? { message } : {}),
+        },
       });
     },
     onSuccess: (result) => {
@@ -144,15 +124,16 @@ function ContactsPage() {
       refresh();
       toast.success(
         result.alreadyOnApp
-          ? "Essa pessoa já usa o app e recebeu seu convite."
-          : "Convite enviado! Ele aparece quando a pessoa criar a conta.",
+          ? `Convite enviado${result.name ? ` para ${result.name}` : ""}. O contato só é criado quando a pessoa aceitar.`
+          : "Convite enviado! Ele aparece para a pessoa quando ela criar a conta.",
       );
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
   const respondMutation = useMutation({
-    mutationFn: ({ invite, accept }: { invite: Invite; accept: boolean }) => respondToInvite(invite, accept),
+    mutationFn: ({ invite, accept }: { invite: InviteView; accept: boolean }) =>
+      respondToInvite(invite.id, accept),
     onSuccess: async (result) => {
       refresh();
       if (!result.accepted) {
@@ -185,39 +166,26 @@ function ContactsPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const pendingReceived = (invites?.received ?? []).filter((invite) => invite.status === "pending");
+
   return (
     <AppShell>
       <div className="mx-auto max-w-3xl space-y-6 p-4 md:p-8">
         <header>
           <h1 className="font-display text-2xl font-bold">Contatos</h1>
           <p className="text-sm text-muted-foreground">
-            Adicione quem já usa o app ou convide por e-mail e telefone.
+            Convide por e-mail ou telefone. Cada pessoa decide se aceita — ninguém é adicionado sem
+            permissão.
           </p>
         </header>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Adicionar contato</CardTitle>
-            <CardDescription>Busque por e-mail ou telefone cadastrado.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2 sm:flex-row">
-            <Input
-              value={identifier}
-              onChange={(event) => setIdentifier(event.target.value)}
-              placeholder="email@exemplo.com ou +55 11 99999-0000"
-              maxLength={255}
-            />
-            <Button disabled={addMutation.isPending} onClick={() => addMutation.mutate()}>
-              <UserPlus className="size-4" /> Adicionar
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Enviar convite</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ShieldCheck className="size-4 text-primary" /> Enviar convite
+            </CardTitle>
             <CardDescription>
-              Informe apenas o e-mail ou o telefone da pessoa. Ela preenche os próprios dados ao criar a conta.
+              O contato e a conversa só são criados depois que a pessoa aceitar o convite.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -239,6 +207,7 @@ function ContactsPage() {
                   value={form.phone}
                   onChange={(event) => setField("phone", event.target.value)}
                   inputMode="tel"
+                  maxLength={20}
                   placeholder="+55 11 99999-0000"
                 />
               </div>
@@ -253,7 +222,7 @@ function ContactsPage() {
                 rows={2}
               />
             </div>
-            <Button variant="secondary" disabled={inviteMutation.isPending} onClick={() => inviteMutation.mutate()}>
+            <Button disabled={inviteMutation.isPending} onClick={() => inviteMutation.mutate()}>
               <UserPlus className="size-4" /> Enviar convite
             </Button>
           </CardContent>
@@ -262,7 +231,9 @@ function ContactsPage() {
         <Tabs defaultValue="lista">
           <TabsList>
             <TabsTrigger value="lista">Meus contatos</TabsTrigger>
-            <TabsTrigger value="recebidos">Convites recebidos</TabsTrigger>
+            <TabsTrigger value="recebidos">
+              Convites recebidos{pendingReceived.length > 0 ? ` (${pendingReceived.length})` : ""}
+            </TabsTrigger>
             <TabsTrigger value="enviados">Convites enviados</TabsTrigger>
           </TabsList>
 
@@ -307,7 +278,6 @@ function ContactsPage() {
                   </Button>
                 </div>
               ))
-
             )}
           </TabsContent>
 
@@ -321,7 +291,7 @@ function ContactsPage() {
                   invite={invite}
                   received
                   onRespond={(accept) => respondMutation.mutate({ invite, accept })}
-                  onDelete={() => deleteInviteMutation.mutate(invite.id)}
+                  onDelete={() => undefined}
                 />
               ))
             )}
