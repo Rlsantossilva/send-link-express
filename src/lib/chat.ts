@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
-import { lookupProfile, type PublicProfileLookup } from "@/lib/profiles.functions";
-import { answerInvite } from "@/lib/invites.functions";
+import { answerInvite, cancelInvite } from "@/lib/invites.functions";
 import { notifyConversationEvent } from "@/lib/push.functions";
+
 
 /** Dispara as notificações push sem travar o envio da mensagem. */
 function fireNotification(input: {
