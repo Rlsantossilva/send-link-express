@@ -7,8 +7,6 @@ export type AdminUser = {
   display_name: string;
   email: string | null;
   phone: string | null;
-  /** Only the last 3 digits are ever sent to the browser. */
-  cpf_masked: string | null;
   created_at: string;
   last_sign_in_at: string | null;
 };
@@ -40,13 +38,6 @@ export const amIAdmin = createServerFn({ method: "GET" })
     return Boolean(data);
   });
 
-function maskCpf(value: string | null): string | null {
-  if (!value) return null;
-  const digits = value.replace(/\D/g, "");
-  if (digits.length < 3) return "•••";
-  return `•••.•••.•••-${digits.slice(-3)}`;
-}
-
 /** Lista todos os usuários do app (novos e antigos), sem expor PII completa. */
 export const listAppUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -56,7 +47,7 @@ export const listAppUsers = createServerFn({ method: "GET" })
     const [{ data: profiles, error }, authList] = await Promise.all([
       supabaseAdmin
         .from("profiles")
-        .select("id, display_name, email, phone, cpf, created_at")
+        .select("id, display_name, email, phone, created_at")
         .order("created_at", { ascending: false }),
       supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     ]);
@@ -73,7 +64,6 @@ export const listAppUsers = createServerFn({ method: "GET" })
       display_name: profile.display_name,
       email: profile.email,
       phone: profile.phone,
-      cpf_masked: maskCpf(profile.cpf),
       created_at: profile.created_at,
       last_sign_in_at: signIn.get(profile.id) ?? null,
     }));

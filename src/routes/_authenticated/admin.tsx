@@ -127,8 +127,7 @@ function AdminPage() {
                     <tr>
                       <th className="px-3 py-2">Usuário</th>
                       <th className="px-3 py-2">Contato</th>
-                      <th className="px-3 py-2">CPF (parcial)</th>
-                      <th className="px-3 py-2">Cadastro</th>
+                                            <th className="px-3 py-2">Cadastro</th>
                       <th className="px-3 py-2">Último acesso</th>
                       <th className="px-3 py-2" />
                     </tr>
@@ -143,7 +142,6 @@ function AdminPage() {
                           <p>{user.email ?? "—"}</p>
                           <p className="text-xs text-muted-foreground">{user.phone ?? "—"}</p>
                         </td>
-                        <td className="px-3 py-2 font-mono text-xs">{user.cpf_masked ?? "—"}</td>
                         <td className="px-3 py-2 text-xs">{formatDate(user.created_at)}</td>
                         <td className="px-3 py-2 text-xs">{formatDate(user.last_sign_in_at)}</td>
 
@@ -181,7 +179,7 @@ function AdminPage() {
           <DialogHeader>
             <DialogTitle>Alterar PIN de acesso</DialogTitle>
             <DialogDescription>
-              {editing?.display_name} — o novo PIN passa a valer imediatamente para entrar com CPF ou e-mail.
+              {editing?.display_name} — o novo PIN passa a valer imediatamente para entrar com o e-mail.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5">

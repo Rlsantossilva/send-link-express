@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
-import { lookupProfile, type PublicProfileLookup } from "@/lib/profiles.functions";
-import { answerInvite } from "@/lib/invites.functions";
+import { answerInvite, cancelInvite } from "@/lib/invites.functions";
 import { notifyConversationEvent } from "@/lib/push.functions";
+
 
 /** Dispara as notificações push sem travar o envio da mensagem. */
 function fireNotification(input: {
@@ -534,26 +534,8 @@ export async function listContacts(): Promise<Contact[]> {
   }));
 }
 
-export async function findProfileByEmailOrPhone(value: string): Promise<PublicProfileLookup | null> {
-  const trimmed = value.trim();
-  if (trimmed.length < 3) return null;
-  return await lookupProfile({ data: { value: trimmed } });
-}
-
-
 export function normalizePhone(value: string) {
   return value.replace(/[^\d+]/g, "");
-}
-
-export async function addContact(contactUserId: string, nickname?: string) {
-  const userId = await requireUserId();
-  const { error } = await supabase
-    .from("contacts")
-    .upsert(
-      { owner_id: userId, contact_id: contactUserId, nickname: nickname?.trim() || null },
-      { onConflict: "owner_id,contact_id" },
-    );
-  if (error) throw error;
 }
 
 export async function removeContact(contactRowId: string) {
@@ -561,49 +543,14 @@ export async function removeContact(contactRowId: string) {
   if (error) throw error;
 }
 
-export async function createInvite(input: { email?: string; phone?: string; message?: string }) {
-  const userId = await requireUserId();
-  const email = input.email?.trim().toLowerCase() || null;
-  const phone = input.phone ? normalizePhone(input.phone) : null;
-  if (!email && !phone) throw new Error("Informe um e-mail ou telefone");
-
-  let inviteeId: string | null = null;
-  const existing = await findProfileByEmailOrPhone(email ?? phone ?? "");
-  if (existing) inviteeId = existing.id;
-
-  const { error } = await supabase.from("invites").insert({
-    inviter_id: userId,
-    invitee_email: email,
-    invitee_phone: phone,
-    invitee_id: inviteeId,
-    message: input.message?.trim() || null,
-  });
-  if (error) throw error;
-  return { alreadyOnApp: Boolean(existing), profile: existing };
-}
-
-export async function listInvites(): Promise<{ sent: Invite[]; received: Invite[] }> {
-  const userId = await requireUserId();
-  const { data, error } = await supabase
-    .from("invites")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  const all = (data ?? []) as Invite[];
-  return {
-    sent: all.filter((i) => i.inviter_id === userId),
-    received: all.filter((i) => i.inviter_id !== userId),
-  };
-}
-
-export async function respondToInvite(invite: Invite, accept: boolean) {
-  return await answerInvite({ data: { inviteId: invite.id, accept } });
+export async function respondToInvite(inviteId: string, accept: boolean) {
+  return await answerInvite({ data: { inviteId, accept } });
 }
 
 export async function deleteInvite(inviteId: string) {
-  const { error } = await supabase.from("invites").delete().eq("id", inviteId);
-  if (error) throw error;
+  return await cancelInvite({ data: { inviteId } });
 }
+
 
 export async function getOrCreateDirectConversation(otherUserId: string): Promise<string> {
   const userId = await requireUserId();

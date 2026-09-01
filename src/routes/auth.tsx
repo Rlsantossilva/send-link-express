@@ -5,7 +5,6 @@ import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { registerWithPin } from "@/lib/signup.functions";
-import { cpfLoginEmail, onlyDigits } from "@/lib/cpf";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,11 +56,8 @@ function AuthPage() {
   async function handleSignIn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const identifier = String(form.get("identifier") ?? "").trim();
+    const email = String(form.get("identifier") ?? "").trim();
     const password = String(form.get("password") ?? "");
-    const digits = onlyDigits(identifier);
-    const isCpf = !identifier.includes("@") && digits.length === 11;
-    const email = isCpf ? cpfLoginEmail(digits) : identifier;
 
     const parsed = signInSchema.safeParse({ email, password });
     if (!parsed.success) {
@@ -73,11 +69,12 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword(parsed.data);
     setLoading(false);
     if (error) {
-      toast.error(isCpf ? "CPF ou PIN incorretos" : "E-mail ou senha incorretos");
+      toast.error("E-mail ou PIN incorretos");
       return;
     }
     navigate({ to: "/conversas", replace: true });
   }
+
 
 
   async function handleSignUp(event: React.FormEvent<HTMLFormElement>) {
@@ -87,7 +84,7 @@ function AuthPage() {
       fullName: String(form.get("fullName") ?? ""),
       birthDate: String(form.get("birthDate") ?? ""),
       email: String(form.get("email") ?? ""),
-      pin: onlyDigits(String(form.get("pin") ?? "")),
+      pin: String(form.get("pin") ?? "").replace(/\D/g, ""),
     });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
@@ -148,17 +145,18 @@ function AuthPage() {
             <TabsContent value="entrar">
               <form className="space-y-4" onSubmit={handleSignIn}>
                 <div className="space-y-1.5">
-                  <Label htmlFor="signin-identifier">CPF ou e-mail</Label>
+                  <Label htmlFor="signin-identifier">E-mail</Label>
                   <Input
                     id="signin-identifier"
                     name="identifier"
-                    autoComplete="username"
-                    placeholder="000.000.000-00 ou você@email.com"
+                    autoComplete="email"
+                    type="email"
+                    placeholder="você@email.com"
                     required
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="signin-password">Senha ou PIN</Label>
+                  <Label htmlFor="signin-password">PIN de acesso</Label>
                   <Input
                     id="signin-password"
                     name="password"
