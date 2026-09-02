@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { Archive, ArchiveRestore, ArrowLeft, Ban, MessageSquare, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowDown, ArrowLeft, Ban, MessageSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -38,6 +38,7 @@ import { PhotoReactionAlerts } from "@/components/photo-reaction-alerts";
 import { NewPhotoAlerts } from "@/components/new-photo-alerts";
 import { EnableNotificationsBanner } from "@/components/enable-notifications-banner";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -158,6 +159,17 @@ function ConversationsPage() {
     [active?.members],
   );
 
+  const readByMe = useMemo(
+    () => new Set(receipts.filter((receipt) => receipt.user_id === myId && receipt.read_at).map((receipt) => receipt.message_id)),
+    [receipts, myId],
+  );
+  const unreadMessages = useMemo(
+    () => messages.filter((message) => message.sender_id !== myId && !readByMe.has(message.id)),
+    [messages, readByMe, myId],
+  );
+  const firstUnreadMessageId = unreadMessages[0]?.id;
+  const unreadCount = unreadMessages.length;
+
   // Marca como lida apenas uma vez por conversa/última mensagem — evita loop de
   // escrita → evento em tempo real → recarga → escrita, que travava a tela.
   const readMarkRef = useRef<string | null>(null);
@@ -203,8 +215,10 @@ function ConversationsPage() {
 
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [messages.length, activeId]);
+    if (!firstUnreadMessageId) {
+      bottomRef.current?.scrollIntoView({ block: "end" });
+    }
+  }, [messages.length, activeId, firstUnreadMessageId]);
 
   const removeMessage = useMutation({
     mutationFn: deleteMessage,
@@ -531,6 +545,26 @@ function ConversationsPage() {
                         : active.members.find((m) => m.id !== myId)?.email || "Conversa individual"}
                   </p>
                 </div>
+                {unreadCount > 0 ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative ml-auto shrink-0"
+                    aria-label="Ir para primeira mensagem não lida"
+                    onClick={() => {
+                      if (firstUnreadMessageId) {
+                        document.getElementById(`msg-${firstUnreadMessageId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+                      } else {
+                        bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+                      }
+                    }}
+                  >
+                    <ArrowDown className="size-4" />
+                    <Badge variant="destructive" className="absolute -right-1 -top-1 h-4 min-w-4 px-1 text-[9px]">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </Badge>
+                  </Button>
+                ) : null}
               </header>
 
 
@@ -543,7 +577,7 @@ function ConversationsPage() {
                     new Date(previous.created_at).toDateString() !==
                       new Date(message.created_at).toDateString();
                   return (
-                    <div key={message.id} className="space-y-2">
+                    <div key={message.id} id={`msg-${message.id}`} className="space-y-2">
                       {showDate ? (
                         <div className="flex items-center justify-center py-2">
                           <span className="rounded-full border border-border bg-background/80 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground shadow-sm">
