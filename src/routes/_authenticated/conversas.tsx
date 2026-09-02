@@ -577,7 +577,7 @@ function ConversationsPage() {
                     new Date(previous.created_at).toDateString() !==
                       new Date(message.created_at).toDateString();
                   return (
-                    <div key={message.id} className="space-y-2">
+                    <div key={message.id} id={`msg-${message.id}`} className="space-y-2">
                       {showDate ? (
                         <div className="flex items-center justify-center py-2">
                           <span className="rounded-full border border-border bg-background/80 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground shadow-sm">
