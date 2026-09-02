@@ -134,23 +134,36 @@ export const MessageItem = memo(function MessageItem({
 
   return (
     <div className={cn("content-auto flex items-end gap-2", isOwn ? "justify-end" : "justify-start")}>
+      {selectionMode ? (
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect?.(message.id)}
+          aria-label="Selecionar mensagem"
+          className="size-4 shrink-0 accent-primary"
+        />
+      ) : null}
       {!isOwn ? <UserAvatar path={senderAvatar} name={senderName} className="size-8" /> : null}
 
       <div className={cn("flex max-w-[85%] flex-col sm:max-w-[70%]", isOwn ? "items-end" : "items-start")}>
         {isOwn ? (
           <span className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Eu</span>
         ) : null}
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open && !selectionMode} onOpenChange={(value) => setOpen(selectionMode ? false : value)}>
           <PopoverTrigger asChild>
             <div
               role="button"
               tabIndex={0}
-              aria-label="Opções da mensagem"
+              aria-label={selectionMode ? "Selecionar mensagem" : "Opções da mensagem"}
+              onClick={() => {
+                if (selectionMode) onToggleSelect?.(message.id);
+              }}
               className={cn(
                 "group w-fit max-w-full cursor-pointer rounded-2xl px-3 py-2 text-left shadow-bubble outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
                 isOwn
                   ? "rounded-br-sm bg-bubble-own text-bubble-own-foreground"
                   : "rounded-bl-sm border border-border bg-bubble-other text-bubble-other-foreground",
+                selectionMode && selected && "ring-2 ring-primary",
               )}
             >
 
