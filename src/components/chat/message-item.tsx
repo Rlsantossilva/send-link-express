@@ -242,6 +242,18 @@ export const MessageItem = memo(function MessageItem({
                   </Button>
                 </>
               ) : null}
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start"
+                onClick={() => {
+                  onStartSelection?.(message.id);
+                  setOpen(false);
+                }}
+              >
+                <CheckSquare className="mr-2 size-4" /> Selecionar mensagens
+              </Button>
             </div>
           </PopoverContent>
         </Popover>
