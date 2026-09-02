@@ -215,8 +215,10 @@ function ConversationsPage() {
 
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [messages.length, activeId]);
+    if (!firstUnreadMessageId) {
+      bottomRef.current?.scrollIntoView({ block: "end" });
+    }
+  }, [messages.length, activeId, firstUnreadMessageId]);
 
   const removeMessage = useMutation({
     mutationFn: deleteMessage,
