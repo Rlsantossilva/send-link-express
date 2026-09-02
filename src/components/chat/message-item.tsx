@@ -80,6 +80,10 @@ export const MessageItem = memo(function MessageItem({
   status,
   onDelete,
   onReact,
+  selectionMode = false,
+  selected = false,
+  onToggleSelect,
+  onStartSelection,
 }: {
   message: Message;
   isOwn: boolean;
@@ -92,6 +96,10 @@ export const MessageItem = memo(function MessageItem({
   status?: "sent" | "delivered" | "read" | undefined;
   onDelete: (id: string) => void;
   onReact: (messageId: string, emoji: string) => void;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
+  onStartSelection?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
