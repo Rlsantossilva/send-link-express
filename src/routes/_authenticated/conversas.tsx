@@ -49,6 +49,21 @@ import { cn } from "@/lib/utils";
 
 const EMPTY_REACTIONS: MessageReaction[] = [];
 
+function dayLabel(iso: string) {
+  const date = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return "Hoje";
+  if (date.toDateString() === yesterday.toDateString()) return "Ontem";
+  return date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: date.getFullYear() === today.getFullYear() ? undefined : "numeric",
+  });
+}
+
+
 export const Route = createFileRoute("/_authenticated/conversas")({
   head: () => ({
     meta: [
