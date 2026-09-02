@@ -49,6 +49,21 @@ import { cn } from "@/lib/utils";
 
 const EMPTY_REACTIONS: MessageReaction[] = [];
 
+function dayLabel(iso: string) {
+  const date = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return "Hoje";
+  if (date.toDateString() === yesterday.toDateString()) return "Ontem";
+  return date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: date.getFullYear() === today.getFullYear() ? undefined : "numeric",
+  });
+}
+
+
 export const Route = createFileRoute("/_authenticated/conversas")({
   head: () => ({
     meta: [
@@ -520,27 +535,39 @@ function ConversationsPage() {
 
 
               <div className="flex-1 space-y-2 overflow-y-auto bg-chat-canvas p-4">
-                {messages.map((message) => {
+                {messages.map((message, index) => {
                   const sender = active.members.find((member) => member.id === message.sender_id);
+                  const previous = index > 0 ? messages[index - 1] : undefined;
+                  const showDate =
+                    !previous ||
+                    new Date(previous.created_at).toDateString() !==
+                      new Date(message.created_at).toDateString();
                   return (
-                    <MessageItem
-                      key={message.id}
-                      message={message}
-                      isOwn={message.sender_id === myId}
-                      senderName={sender?.display_name ?? "Alguém"}
-                      senderAvatar={sender?.avatar_url}
-                      showSender={active.is_group}
-                      status={message.sender_id === myId ? ownStatus(message.id) : undefined}
-
-                      reactions={reactionsByMessage.get(message.id) ?? EMPTY_REACTIONS}
-                      myId={myId ?? ""}
-                      nameById={nameById}
-
-                      onReact={handleReact}
-                      onDelete={handleDelete}
-                    />
+                    <div key={message.id} className="space-y-2">
+                      {showDate ? (
+                        <div className="flex items-center justify-center py-2">
+                          <span className="rounded-full border border-border bg-background/80 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground shadow-sm">
+                            {dayLabel(message.created_at)}
+                          </span>
+                        </div>
+                      ) : null}
+                      <MessageItem
+                        message={message}
+                        isOwn={message.sender_id === myId}
+                        senderName={sender?.display_name ?? "Alguém"}
+                        senderAvatar={sender?.avatar_url}
+                        showSender={active.is_group}
+                        status={message.sender_id === myId ? ownStatus(message.id) : undefined}
+                        reactions={reactionsByMessage.get(message.id) ?? EMPTY_REACTIONS}
+                        myId={myId ?? ""}
+                        nameById={nameById}
+                        onReact={handleReact}
+                        onDelete={handleDelete}
+                      />
+                    </div>
                   );
                 })}
+
                 <div ref={bottomRef} />
               </div>
 
