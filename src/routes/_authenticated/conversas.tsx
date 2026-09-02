@@ -38,6 +38,7 @@ import { PhotoReactionAlerts } from "@/components/photo-reaction-alerts";
 import { NewPhotoAlerts } from "@/components/new-photo-alerts";
 import { EnableNotificationsBanner } from "@/components/enable-notifications-banner";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
