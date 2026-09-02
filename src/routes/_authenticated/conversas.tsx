@@ -545,6 +545,26 @@ function ConversationsPage() {
                         : active.members.find((m) => m.id !== myId)?.email || "Conversa individual"}
                   </p>
                 </div>
+                {unreadCount > 0 ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative ml-auto shrink-0"
+                    aria-label="Ir para primeira mensagem não lida"
+                    onClick={() => {
+                      if (firstUnreadMessageId) {
+                        document.getElementById(`msg-${firstUnreadMessageId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+                      } else {
+                        bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+                      }
+                    }}
+                  >
+                    <ArrowDown className="size-4" />
+                    <Badge variant="destructive" className="absolute -right-1 -top-1 h-4 min-w-4 px-1 text-[9px]">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </Badge>
+                  </Button>
+                ) : null}
               </header>
 
 
