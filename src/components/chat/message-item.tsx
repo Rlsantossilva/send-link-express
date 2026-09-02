@@ -315,6 +315,21 @@ export const MessageItem = memo(function MessageItem({
                   </button>
                 ))}
               </div>
+              {isOwn ? (
+                <div className="mt-2 border-t border-border pt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-destructive"
+                    onClick={() => {
+                      onDelete(message.id);
+                      setPickerOpen(false);
+                    }}
+                  >
+                    <Trash2 className="mr-2 size-4" /> Excluir mensagem
+                  </Button>
+                </div>
+              ) : null}
             </PopoverContent>
           </Popover>
         </div>
