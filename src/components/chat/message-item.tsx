@@ -1,6 +1,6 @@
 import { memo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, CheckCheck, Copy, Download, Scissors, SmilePlus, Trash2 } from "lucide-react";
+import { Check, CheckCheck, CheckSquare, Copy, Download, Scissors, SmilePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { createSignedUrl, type Message, type MessageReaction } from "@/lib/chat";
 import { UserAvatar } from "@/components/user-avatar";
