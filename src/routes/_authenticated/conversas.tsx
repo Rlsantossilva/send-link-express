@@ -159,6 +159,17 @@ function ConversationsPage() {
     [active?.members],
   );
 
+  const readByMe = useMemo(
+    () => new Set(receipts.filter((receipt) => receipt.user_id === myId && receipt.read_at).map((receipt) => receipt.message_id)),
+    [receipts, myId],
+  );
+  const unreadMessages = useMemo(
+    () => messages.filter((message) => message.sender_id !== myId && !readByMe.has(message.id)),
+    [messages, readByMe, myId],
+  );
+  const firstUnreadMessageId = unreadMessages[0]?.id;
+  const unreadCount = unreadMessages.length;
+
   // Marca como lida apenas uma vez por conversa/última mensagem — evita loop de
   // escrita → evento em tempo real → recarga → escrita, que travava a tela.
   const readMarkRef = useRef<string | null>(null);
