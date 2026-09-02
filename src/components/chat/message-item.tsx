@@ -1,6 +1,6 @@
 import { memo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, CheckCheck, Copy, Download, Scissors, SmilePlus, Trash2 } from "lucide-react";
+import { Check, CheckCheck, CheckSquare, Copy, Download, Scissors, SmilePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { createSignedUrl, type Message, type MessageReaction } from "@/lib/chat";
 import { UserAvatar } from "@/components/user-avatar";
@@ -80,6 +80,10 @@ export const MessageItem = memo(function MessageItem({
   status,
   onDelete,
   onReact,
+  selectionMode = false,
+  selected = false,
+  onToggleSelect,
+  onStartSelection,
 }: {
   message: Message;
   isOwn: boolean;
@@ -92,6 +96,10 @@ export const MessageItem = memo(function MessageItem({
   status?: "sent" | "delivered" | "read" | undefined;
   onDelete: (id: string) => void;
   onReact: (messageId: string, emoji: string) => void;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
+  onStartSelection?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -126,23 +134,36 @@ export const MessageItem = memo(function MessageItem({
 
   return (
     <div className={cn("content-auto flex items-end gap-2", isOwn ? "justify-end" : "justify-start")}>
+      {selectionMode ? (
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect?.(message.id)}
+          aria-label="Selecionar mensagem"
+          className="size-4 shrink-0 accent-primary"
+        />
+      ) : null}
       {!isOwn ? <UserAvatar path={senderAvatar} name={senderName} className="size-8" /> : null}
 
       <div className={cn("flex max-w-[85%] flex-col sm:max-w-[70%]", isOwn ? "items-end" : "items-start")}>
         {isOwn ? (
           <span className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Eu</span>
         ) : null}
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open && !selectionMode} onOpenChange={(value) => setOpen(selectionMode ? false : value)}>
           <PopoverTrigger asChild>
             <div
               role="button"
               tabIndex={0}
-              aria-label="Opções da mensagem"
+              aria-label={selectionMode ? "Selecionar mensagem" : "Opções da mensagem"}
+              onClick={() => {
+                if (selectionMode) onToggleSelect?.(message.id);
+              }}
               className={cn(
                 "group w-fit max-w-full cursor-pointer rounded-2xl px-3 py-2 text-left shadow-bubble outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
                 isOwn
                   ? "rounded-br-sm bg-bubble-own text-bubble-own-foreground"
                   : "rounded-bl-sm border border-border bg-bubble-other text-bubble-other-foreground",
+                selectionMode && selected && "ring-2 ring-primary",
               )}
             >
 
@@ -221,6 +242,18 @@ export const MessageItem = memo(function MessageItem({
                   </Button>
                 </>
               ) : null}
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start"
+                onClick={() => {
+                  onStartSelection?.(message.id);
+                  setOpen(false);
+                }}
+              >
+                <CheckSquare className="mr-2 size-4" /> Selecionar mensagens
+              </Button>
             </div>
           </PopoverContent>
         </Popover>
@@ -282,6 +315,21 @@ export const MessageItem = memo(function MessageItem({
                   </button>
                 ))}
               </div>
+              {isOwn ? (
+                <div className="mt-2 border-t border-border pt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-destructive"
+                    onClick={() => {
+                      onDelete(message.id);
+                      setPickerOpen(false);
+                    }}
+                  >
+                    <Trash2 className="mr-2 size-4" /> Excluir mensagem
+                  </Button>
+                </div>
+              ) : null}
             </PopoverContent>
           </Popover>
         </div>

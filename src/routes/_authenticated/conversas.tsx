@@ -246,6 +246,36 @@ function ConversationsPage() {
 
   const handleDelete = useCallback((id: string) => removeMessage.mutate(id), [removeMessage]);
 
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+  }, []);
+
+  const startSelection = useCallback((id: string) => {
+    setSelectionMode(true);
+    setSelectedIds([id]);
+  }, []);
+
+  function exitSelection() {
+    setSelectionMode(false);
+    setSelectedIds([]);
+  }
+
+  async function deleteSelected() {
+    const ids = [...selectedIds];
+    exitSelection();
+    try {
+      for (const id of ids) await deleteMessage(id);
+      toast.success(ids.length > 1 ? `${ids.length} mensagens excluídas` : "Mensagem excluída");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível excluir");
+    }
+    void queryClient.invalidateQueries({ queryKey: ["messages", activeId] });
+    void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+  }
+
   const archiveMutation = useMutation({
     mutationFn: ({ id, archived }: { id: string; archived: boolean }) =>
       setConversationArchived(id, archived),
