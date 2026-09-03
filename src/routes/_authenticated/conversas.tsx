@@ -655,6 +655,10 @@ function ConversationsPage() {
                         nameById={nameById}
                         onReact={handleReact}
                         onDelete={handleDelete}
+                        selectionMode={selectionMode}
+                        selected={selectedIds.includes(message.id)}
+                        onToggleSelect={toggleSelect}
+                        onStartSelection={startSelection}
                       />
                     </div>
                   );
