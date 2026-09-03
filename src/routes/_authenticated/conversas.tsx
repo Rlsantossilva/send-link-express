@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { Archive, ArchiveRestore, ArrowDown, ArrowLeft, Ban, MessageSquare, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowDown, ArrowLeft, Ban, MessageSquare, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -538,63 +538,91 @@ function ConversationsPage() {
           {active ? (
             <>
               <header className="flex items-center gap-3 border-b border-border px-4 py-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="md:hidden"
-                  aria-label="Voltar"
-                  onClick={() => void navigate({ to: "/conversas", search: {} })}
-                >
-                  <ArrowLeft className="size-4" />
-                </Button>
-                {active.is_group ? (
-                  <button
-                    type="button"
-                    aria-label="Configurações do grupo"
-                    className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    onClick={() => setGroupSettingsOpen(true)}
-                  >
-                    <UserAvatar path={active.avatar_url} name={active.name} className="size-9" />
-                  </button>
+                {selectionMode ? (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Cancelar seleção"
+                      onClick={exitSelection}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">
+                        {selectedIds.length} selecionada{selectedIds.length !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={selectedIds.length === 0 || removeMessage.isPending}
+                      onClick={() => deleteSelected()}
+                    >
+                      <Trash2 className="mr-2 size-4" /> Excluir
+                    </Button>
+                  </>
                 ) : (
-                  <UserAvatar
-                    userId={active.members.find((m) => m.id !== myId)?.id}
-                    path={conversationAvatarPath(active, myId ?? "")}
-                    name={conversationTitle(active, myId ?? "")}
-                    className="size-9"
-                    online={active.members.some((m) => m.id !== myId && onlineIds.has(m.id))}
-                  />
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="md:hidden"
+                      aria-label="Voltar"
+                      onClick={() => void navigate({ to: "/conversas", search: {} })}
+                    >
+                      <ArrowLeft className="size-4" />
+                    </Button>
+                    {active.is_group ? (
+                      <button
+                        type="button"
+                        aria-label="Configurações do grupo"
+                        className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        onClick={() => setGroupSettingsOpen(true)}
+                      >
+                        <UserAvatar path={active.avatar_url} name={active.name} className="size-9" />
+                      </button>
+                    ) : (
+                      <UserAvatar
+                        userId={active.members.find((m) => m.id !== myId)?.id}
+                        path={conversationAvatarPath(active, myId ?? "")}
+                        name={conversationTitle(active, myId ?? "")}
+                        className="size-9"
+                        online={active.members.some((m) => m.id !== myId && onlineIds.has(m.id))}
+                      />
+                    )}
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{conversationTitle(active, myId ?? "")}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {active.is_group
+                          ? `${active.members.length} participantes · toque na foto para configurar`
+                          : active.members.some((m) => m.id !== myId && onlineIds.has(m.id))
+                            ? "Online"
+                            : active.members.find((m) => m.id !== myId)?.email || "Conversa individual"}
+                      </p>
+                    </div>
+                    {unreadCount > 0 ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="relative ml-auto shrink-0"
+                        aria-label="Ir para primeira mensagem não lida"
+                        onClick={() => {
+                          if (firstUnreadMessageId) {
+                            document.getElementById(`msg-${firstUnreadMessageId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+                          } else {
+                            bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+                          }
+                        }}
+                      >
+                        <ArrowDown className="size-4" />
+                        <Badge variant="destructive" className="absolute -right-1 -top-1 h-4 min-w-4 px-1 text-[9px]">
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </Badge>
+                      </Button>
+                    ) : null}
+                  </>
                 )}
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{conversationTitle(active, myId ?? "")}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {active.is_group
-                      ? `${active.members.length} participantes · toque na foto para configurar`
-                      : active.members.some((m) => m.id !== myId && onlineIds.has(m.id))
-                        ? "Online"
-                        : active.members.find((m) => m.id !== myId)?.email || "Conversa individual"}
-                  </p>
-                </div>
-                {unreadCount > 0 ? (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="relative ml-auto shrink-0"
-                    aria-label="Ir para primeira mensagem não lida"
-                    onClick={() => {
-                      if (firstUnreadMessageId) {
-                        document.getElementById(`msg-${firstUnreadMessageId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-                      } else {
-                        bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-                      }
-                    }}
-                  >
-                    <ArrowDown className="size-4" />
-                    <Badge variant="destructive" className="absolute -right-1 -top-1 h-4 min-w-4 px-1 text-[9px]">
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </Badge>
-                  </Button>
-                ) : null}
               </header>
 
 
@@ -627,6 +655,10 @@ function ConversationsPage() {
                         nameById={nameById}
                         onReact={handleReact}
                         onDelete={handleDelete}
+                        selectionMode={selectionMode}
+                        selected={selectedIds.includes(message.id)}
+                        onToggleSelect={toggleSelect}
+                        onStartSelection={startSelection}
                       />
                     </div>
                   );
