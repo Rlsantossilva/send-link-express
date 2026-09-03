@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { Archive, ArchiveRestore, ArrowDown, ArrowLeft, Ban, MessageSquare, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowDown, ArrowLeft, Ban, MessageSquare, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
