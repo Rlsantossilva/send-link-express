@@ -1,0 +1,19 @@
+# Capacitor/Android
+android/
+.capacitor/
+dist-capacitor/
+
+# Firebase
+android/app/google-services.json
+release.keystore
+
+# Android build outputs
+*.apk
+*.aab
+*.jks
+
+# Android Studio
+.gradle/
+.idea/
+local.properties
+*.iml
